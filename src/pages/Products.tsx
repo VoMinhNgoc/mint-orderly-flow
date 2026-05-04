@@ -12,6 +12,18 @@ import { Card } from "@/components/ui/card";
 
 const empty: Product = { id: "", name: "", description: "", image_url: "", base_price: 0 };
 
+// Biến số thành chuỗi có dấu phẩy: 3000 -> "3,000"
+const formatDisplayPrice = (val: number | string) => {
+  if (val === "" || val === 0) return "";
+  const num = parseFloat(val.toString().replace(/,/g, ""));
+  return isNaN(num) ? "" : new Intl.NumberFormat('en-US').format(num);
+};
+
+// Biến chuỗi có dấu phẩy thành số thuần: "3,000" -> 3000
+const parseRawPrice = (val: string) => {
+  return val.replace(/,/g, "");
+};
+
 const Products = () => {
   const qc = useQueryClient();
   const [form, setForm] = useState<Product>(empty);
@@ -36,7 +48,7 @@ const Products = () => {
       toast.error("Product ID and Name are required");
       return;
     }
-    create.mutate({ ...form, base_price: Number(form.base_price) });
+    create.mutate({ ...form, base_price: Number(parseRawPrice(form.base_price.toString())) });
   };
 
   return (
@@ -78,10 +90,16 @@ const Products = () => {
             <Label htmlFor="base_price">Base Price</Label>
             <Input
               id="base_price"
-              type="number"
-              step="0.01"
-              value={form.base_price}
-              onChange={(e) => setForm({ ...form, base_price: Number(e.target.value) })}
+              type="text" // Đổi thành text để hiện dấu phẩy
+              value={formatDisplayPrice(form.base_price)} // Gọi hàm format hiển thị
+              onChange={(e) => {
+                const raw = parseRawPrice(e.target.value); // Lấy số thuần túy
+                // Chỉ cập nhật nếu là số hoặc chuỗi rỗng
+                if (!isNaN(Number(raw)) || raw === "") {
+                  setForm({ ...form, base_price: raw as any }); 
+                }
+              }}
+              placeholder="0"
             />
           </div>
           <div className="space-y-2 md:col-span-2">
@@ -130,7 +148,7 @@ const Products = () => {
                     <div className="font-mono text-xs text-primary">{p.id}</div>
                     <div className="font-semibold text-foreground line-clamp-1">{p.name}</div>
                     <div className="text-sm text-muted-foreground">
-                      ${Number(p.base_price).toFixed(2)}
+                      ${Number(p.base_price).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </div>
                   </div>
                 </Card>
