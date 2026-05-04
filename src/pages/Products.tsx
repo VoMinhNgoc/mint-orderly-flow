@@ -28,7 +28,12 @@ const Products = () => {
   const qc = useQueryClient();
   const [form, setForm] = useState<Product>(empty);
   // Dùng để quản lý chuỗi hiển thị có dấu chấm (ví dụ: "100.000")
-  const [displayPrice, setDisplayPrice] = useState<string>("");
+  const [displayPrice, setDisplayPrice] = useState("");
+
+  const resetForm = () => {
+    setForm(empty);
+    setDisplayPrice(""); 
+  };
   
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products"],
@@ -98,12 +103,21 @@ const Products = () => {
               onChange={(e) => {
                 // 1. Chỉ lấy các con số từ chuỗi người dùng nhập
                 const rawValue = e.target.value.replace(/\D/g, "");
+
+                if (!value) {
+                  setDisplayPrice("");
+                  setForm({ ...form, base_price: 0 });
+                  return;
+                }
                 
-                // 2. Cập nhật chuỗi hiển thị có dấu chấm (ngân hàng style)
-                const formatted = rawValue.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+              // 3. Ép kiểu về số để đảm bảo không bị lỗi "00100"
+                const numValue = Number(value);
+              
+                // 4. Format hiển thị theo chuẩn VN (100.000)
+                const formatted = new Intl.NumberFormat('vi-VN').format(numValue);
+                
+                // 5. Cập nhật 2 state CÙNG LÚC
                 setDisplayPrice(formatted);
-                
-                // 3. Cập nhật vào form chính (số thuần túy để gửi API)
                 setForm({ ...form, base_price: Number(rawValue) });
               }}
               placeholder="0"
