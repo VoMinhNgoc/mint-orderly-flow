@@ -27,7 +27,9 @@ const parseRawPrice = (val: string) => {
 const Products = () => {
   const qc = useQueryClient();
   const [form, setForm] = useState<Product>(empty);
-
+  // Dùng để quản lý chuỗi hiển thị có dấu chấm (ví dụ: "100.000")
+  const [displayPrice, setDisplayPrice] = useState<string>("");
+  
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products"],
     queryFn: () => api.get<Product[]>("/products"),
@@ -38,6 +40,7 @@ const Products = () => {
     onSuccess: () => {
       toast.success("Product saved");
       setForm(empty);
+      setDisplayPrice(""); // Thêm dòng này để xóa trắng ô nhập giá sau khi lưu
       qc.invalidateQueries({ queryKey: ["products"] });
     },
   });
@@ -87,17 +90,21 @@ const Products = () => {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="base_price">Base Price</Label>
+            <Label htmlFor="base_price">Base Price (VNĐ)</Label>
             <Input
               id="base_price"
-              type="text" // Đổi thành text để hiện dấu phẩy
-              value={formatDisplayPrice(form.base_price)} // Gọi hàm format hiển thị
+              type="text" 
+              value={displayPrice}
               onChange={(e) => {
-                const raw = parseRawPrice(e.target.value); // Lấy số thuần túy
-                // Chỉ cập nhật nếu là số hoặc chuỗi rỗng
-                if (!isNaN(Number(raw)) || raw === "") {
-                  setForm({ ...form, base_price: raw as any }); 
-                }
+                // 1. Chỉ lấy các con số từ chuỗi người dùng nhập
+                const rawValue = e.target.value.replace(/\D/g, "");
+                
+                // 2. Cập nhật chuỗi hiển thị có dấu chấm (ngân hàng style)
+                const formatted = rawValue.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+                setDisplayPrice(formatted);
+                
+                // 3. Cập nhật vào form chính (số thuần túy để gửi API)
+                setForm({ ...form, base_price: Number(rawValue) });
               }}
               placeholder="0"
             />
