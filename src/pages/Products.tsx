@@ -99,27 +99,15 @@ const Products = () => {
             <Input
               id="base_price"
               type="text" 
-              value={displayPrice}
+              // Dùng trực tiếp hàm format ở đây để đảm bảo hiển thị luôn đúng
+              value={form.base_price ? new Intl.NumberFormat('vi-VN').format(Number(form.base_price)) : ""}
               onChange={(e) => {
-                // 1. Lấy giá trị thô từ input
-                const inputValue = e.target.value;
-              
-                // 2. Loại bỏ mọi ký tự không phải là số (để xử lý tính toán)
-                const numericValue = inputValue.replace(/\D/g, "");
-              
-                // 3. Cập nhật state hiển thị (displayPrice)
-                // Nếu rỗng thì hiện trống, nếu có số thì format có dấu chấm
-                const formatted = numericValue 
-                  ? new Intl.NumberFormat('vi-VN').format(Number(numericValue)) 
-                  : "";
-                setDisplayPrice(formatted);
-              
-                // 4. Cập nhật vào form chính (Lưu ý: ép kiểu Number để gửi API)
-                // Quan trọng: Phải cập nhật state này thì form mới nhận dữ liệu
-                setForm((prev) => ({ 
-                  ...prev, 
-                  base_price: numericValue ? Number(numericValue) : 0 
-                }));
+                // 1. Chỉ lấy số thô
+                const rawValue = e.target.value.replace(/\D/g, "");
+                
+                // 2. Cập nhật trực tiếp vào form (ép về kiểu Number)
+                // Khi form.base_price thay đổi, value ở trên sẽ tự động format lại
+                setForm({ ...form, base_price: rawValue ? Number(rawValue) : 0 });
               }}
               placeholder="0"
             />
