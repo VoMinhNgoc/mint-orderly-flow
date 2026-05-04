@@ -101,24 +101,25 @@ const Products = () => {
               type="text" 
               value={displayPrice}
               onChange={(e) => {
-                // 1. Chỉ lấy các con số từ chuỗi người dùng nhập
-                const rawValue = e.target.value.replace(/\D/g, "");
-
-                if (!value) {
-                  setDisplayPrice("");
-                  setForm({ ...form, base_price: 0 });
-                  return;
-                }
-                
-              // 3. Ép kiểu về số để đảm bảo không bị lỗi "00100"
-                const numValue = Number(value);
+                // 1. Lấy giá trị thô từ input
+                const inputValue = e.target.value;
               
-                // 4. Format hiển thị theo chuẩn VN (100.000)
-                const formatted = new Intl.NumberFormat('vi-VN').format(numValue);
-                
-                // 5. Cập nhật 2 state CÙNG LÚC
+                // 2. Loại bỏ mọi ký tự không phải là số (để xử lý tính toán)
+                const numericValue = inputValue.replace(/\D/g, "");
+              
+                // 3. Cập nhật state hiển thị (displayPrice)
+                // Nếu rỗng thì hiện trống, nếu có số thì format có dấu chấm
+                const formatted = numericValue 
+                  ? new Intl.NumberFormat('vi-VN').format(Number(numericValue)) 
+                  : "";
                 setDisplayPrice(formatted);
-                setForm({ ...form, base_price: Number(rawValue) });
+              
+                // 4. Cập nhật vào form chính (Lưu ý: ép kiểu Number để gửi API)
+                // Quan trọng: Phải cập nhật state này thì form mới nhận dữ liệu
+                setForm((prev) => ({ 
+                  ...prev, 
+                  base_price: numericValue ? Number(numericValue) : 0 
+                }));
               }}
               placeholder="0"
             />
