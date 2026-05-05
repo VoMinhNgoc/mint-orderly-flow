@@ -1,6 +1,6 @@
 import { toast } from "sonner";
 
-export const API_BASE_URL = "https://glamour-ferris-spoken.ngrok-free.dev/";
+export const API_BASE_URL = "https://glamour-ferris-spoken.ngrok-free.dev";
 
 const SLOW_MS = 8000;
 
