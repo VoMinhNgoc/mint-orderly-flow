@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Trash2, Plus, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
@@ -7,7 +7,10 @@ import type { CartItem, Product } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { ProductIdLink } from "@/components/ProductIdLink";
+import { NumberInput } from "@/components/NumberInput";
+import { TagSelect, useTags } from "@/components/TagSelect";
 import {
   Dialog,
   DialogContent,
@@ -37,12 +40,16 @@ const blank = (p?: Product): DraftItem => ({
   product_price: p?.base_price ?? 0,
   markup_fee: 0,
   expiry_date: new Date().toISOString().slice(0, 10),
+  tag: p?.tag,
 });
+
+const ALL = "__all__";
 
 const Cart = () => {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<DraftItem>(blank());
+  const [filterTag, setFilterTag] = useState<string>(ALL);
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["cart"],
@@ -52,6 +59,7 @@ const Cart = () => {
     queryKey: ["products"],
     queryFn: () => api.get<Product[]>("/products"),
   });
+  const { data: tags = [] } = useTags();
 
   const addItem = useMutation({
     mutationFn: (d: DraftItem) => api.post<CartItem>("/cart", d),
@@ -82,6 +90,7 @@ const Cart = () => {
         units_per_set: item.units_per_set,
         product_price: item.product_price,
         markup_fee: item.markup_fee,
+        tag: item.tag,
         status: "pending",
       });
       await api.del(`/cart/${item.id}`);
@@ -95,8 +104,27 @@ const Cart = () => {
 
   const onPickProduct = (id: string) => {
     const p = products.find((x) => x.id === id);
-    if (p) setDraft({ ...draft, product_id: p.id, product_name: p.name, product_price: p.base_price });
+    if (p) setDraft({ ...draft, product_id: p.id, product_name: p.name, product_price: p.base_price, tag: p.tag ?? draft.tag });
   };
+
+  const filtered = useMemo(
+    () => (filterTag === ALL ? items : items.filter((it) => (it.tag ?? "") === filterTag)),
+    [items, filterTag]
+  );
+
+  const filteredTotal = useMemo(
+    () =>
+      filtered.reduce(
+        (sum, it) =>
+          sum +
+          (Number(it.product_price) + Number(it.markup_fee)) *
+            Number(it.base_sets) *
+            Number(it.split_sets) *
+            Number(it.units_per_set),
+        0
+      ),
+    [filtered]
+  );
 
   return (
     <div className="space-y-6">
@@ -141,46 +169,32 @@ const Cart = () => {
               <div className="grid grid-cols-3 gap-2">
                 <div className="space-y-1.5">
                   <Label>Base Sets</Label>
-                  <Input
-                    type="number"
-                    value={draft.base_sets}
-                    onChange={(e) => setDraft({ ...draft, base_sets: Number(e.target.value) })}
-                  />
+                  <NumberInput value={draft.base_sets} onChange={(n) => setDraft({ ...draft, base_sets: n })} />
                 </div>
                 <div className="space-y-1.5">
                   <Label>Split Sets</Label>
-                  <Input
-                    type="number"
-                    value={draft.split_sets}
-                    onChange={(e) => setDraft({ ...draft, split_sets: Number(e.target.value) })}
-                  />
+                  <NumberInput value={draft.split_sets} onChange={(n) => setDraft({ ...draft, split_sets: n })} />
                 </div>
                 <div className="space-y-1.5">
                   <Label>Units / Set</Label>
-                  <Input
-                    type="number"
-                    value={draft.units_per_set}
-                    onChange={(e) => setDraft({ ...draft, units_per_set: Number(e.target.value) })}
-                  />
+                  <NumberInput value={draft.units_per_set} onChange={(n) => setDraft({ ...draft, units_per_set: n })} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1.5">
-                  <Label>Product Price</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
+                  <Label>Product Price (VNĐ)</Label>
+                  <NumberInput
+                    format="thousand"
                     value={draft.product_price}
-                    onChange={(e) => setDraft({ ...draft, product_price: Number(e.target.value) })}
+                    onChange={(n) => setDraft({ ...draft, product_price: n })}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Markup Fee</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
+                  <Label>Markup Fee (VNĐ)</Label>
+                  <NumberInput
+                    format="thousand"
                     value={draft.markup_fee}
-                    onChange={(e) => setDraft({ ...draft, markup_fee: Number(e.target.value) })}
+                    onChange={(n) => setDraft({ ...draft, markup_fee: n })}
                   />
                 </div>
               </div>
@@ -191,6 +205,10 @@ const Cart = () => {
                   value={draft.expiry_date}
                   onChange={(e) => setDraft({ ...draft, expiry_date: e.target.value })}
                 />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Tag</Label>
+                <TagSelect value={draft.tag} onChange={(t) => setDraft({ ...draft, tag: t })} />
               </div>
             </div>
             <DialogFooter>
@@ -205,6 +223,31 @@ const Cart = () => {
         </Dialog>
       </div>
 
+      <Card className="p-4 rounded-2xl shadow-[var(--shadow-card)] flex flex-wrap items-center gap-3">
+        <Label className="text-sm">Lọc theo tag:</Label>
+        <div className="min-w-[200px]">
+          <Select value={filterTag} onValueChange={setFilterTag}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>Tất cả</SelectItem>
+              {tags.map((t) => (
+                <SelectItem key={String(t.id ?? t.name)} value={t.name}>
+                  {t.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="ml-auto text-sm">
+          <span className="text-muted-foreground">Tổng ({filtered.length} mục): </span>
+          <span className="font-bold text-primary">
+            {filteredTotal.toLocaleString("vi-VN")} VNĐ
+          </span>
+        </div>
+      </Card>
+
       <Card className="rounded-2xl shadow-[var(--shadow-card)] overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -212,6 +255,7 @@ const Cart = () => {
               <tr>
                 <th className="text-left p-3 font-medium">Product ID</th>
                 <th className="text-left p-3 font-medium">Name</th>
+                <th className="text-left p-3 font-medium">Tag</th>
                 <th className="text-left p-3 font-medium">Description</th>
                 <th className="text-right p-3 font-medium">Base Sets</th>
                 <th className="text-right p-3 font-medium">Split Sets</th>
@@ -224,20 +268,21 @@ const Cart = () => {
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">Loading…</td></tr>
-              ) : items.length === 0 ? (
-                <tr><td colSpan={10} className="p-6 text-center text-muted-foreground">Cart is empty.</td></tr>
+                <tr><td colSpan={11} className="p-6 text-center text-muted-foreground">Loading…</td></tr>
+              ) : filtered.length === 0 ? (
+                <tr><td colSpan={11} className="p-6 text-center text-muted-foreground">Không có sản phẩm.</td></tr>
               ) : (
-                items.map((it) => (
+                filtered.map((it) => (
                   <tr key={it.id} className="border-t border-border">
                     <td className="p-3"><ProductIdLink id={it.product_id} /></td>
                     <td className="p-3">{it.product_name}</td>
+                    <td className="p-3">{it.tag ? <Badge variant="secondary">{it.tag}</Badge> : <span className="text-muted-foreground">—</span>}</td>
                     <td className="p-3">{it.simple_description}</td>
                     <td className="p-3 text-right">{it.base_sets}</td>
                     <td className="p-3 text-right">{it.split_sets}</td>
                     <td className="p-3 text-right">{it.units_per_set}</td>
-                    <td className="p-3 text-right">${Number(it.product_price).toFixed(2)}</td>
-                    <td className="p-3 text-right">${Number(it.markup_fee).toFixed(2)}</td>
+                    <td className="p-3 text-right">{Number(it.product_price).toLocaleString('vi-VN')}</td>
+                    <td className="p-3 text-right">{Number(it.markup_fee).toLocaleString('vi-VN')}</td>
                     <td className="p-3">{it.expiry_date}</td>
                     <td className="p-3">
                       <div className="flex gap-2 justify-end">
