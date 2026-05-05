@@ -7,6 +7,7 @@ import type { Customer } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/NumberInput";
 import { ProductIdLink } from "@/components/ProductIdLink";
 
 type Edits = Record<string, { description: string; final_amount: number }>;
@@ -91,19 +92,15 @@ const Customers = () => {
                         />
                       </td>
                       <td className="p-3 text-right text-muted-foreground">
-                        ${Number(c.suggested_amount ?? 0).toFixed(2)}
+                        {Number(c.suggested_amount ?? 0).toLocaleString('vi-VN')}
                       </td>
-                      <td className="p-3 min-w-[160px]">
+                      <td className="p-3 min-w-[180px]">
                         <div className="flex gap-1.5">
-                          <Input
-                            type="number"
-                            step="0.01"
+                          <NumberInput
+                            format="thousand"
                             value={e.final_amount}
-                            onChange={(ev) =>
-                              setEdits({
-                                ...edits,
-                                [k]: { ...e, final_amount: Number(ev.target.value) },
-                              })
+                            onChange={(n) =>
+                              setEdits({ ...edits, [k]: { ...e, final_amount: n } })
                             }
                           />
                           <Button

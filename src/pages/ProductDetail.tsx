@@ -42,7 +42,7 @@ const ProductDetail = () => {
               <div className="font-mono text-sm text-primary">{data.id}</div>
               <h1 className="text-3xl font-bold text-foreground">{data.name}</h1>
               <div className="text-2xl font-semibold text-primary">
-                {Number(data.base_price).toLocaleString('vi-VN')} VNĐ`[cite: 4]
+                {Number(data.base_price).toLocaleString('vi-VN')} VNĐ
               </div>
               <p className="text-foreground/80 whitespace-pre-wrap leading-relaxed">
                 {data.description}

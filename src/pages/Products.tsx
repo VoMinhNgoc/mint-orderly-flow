@@ -9,35 +9,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { NumberInput } from "@/components/NumberInput";
+import { TagSelect } from "@/components/TagSelect";
 
-const empty: Product = { id: "", name: "", description: "", image_url: "", base_price: 0 };
-
-// Biến số thành chuỗi có dấu phẩy: 3000 -> "3,000"
-const formatDisplayPrice = (val: number | string) => {
-  if (val === "" || val === 0) return "";
-  const num = parseFloat(val.toString().replace(/,/g, ""));
-  return isNaN(num) ? "" : new Intl.NumberFormat('en-US').format(num);
-};
-
-// Biến chuỗi có dấu phẩy thành số thuần: "3,000" -> 3000
-const parseRawPrice = (val: string) => {
-  return val.replace(/,/g, "");
-};
+const empty: Product = { id: "", name: "", description: "", image_url: "", base_price: 0, tag: undefined };
 
 const Products = () => {
   const qc = useQueryClient();
   const [form, setForm] = useState<Product>(empty);
 
-  // Thêm hàm định dạng tiền Việt để dùng cho cả Input và Catalog
-  const formatVND = (val: number) => {
-    if (!val) return "";
-    return new Intl.NumberFormat('vi-VN').format(val);
-};
-
-  const resetForm = () => {
-    setForm(empty);
-  };
-  
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products"],
     queryFn: () => api.get<Product[]>("/products"),
@@ -47,7 +28,7 @@ const Products = () => {
     mutationFn: (p: Product) => api.post<Product>("/products", p),
     onSuccess: () => {
       toast.success("Product saved");
-      resetForm(); // Gọi hàm reset đã sửa ở trên
+      setForm(empty);
       qc.invalidateQueries({ queryKey: ["products"] });
     },
   });
@@ -58,8 +39,7 @@ const Products = () => {
       toast.error("Product ID and Name are required");
       return;
     }
-    // Gửi trực tiếp vì base_price đã là kiểu Number
-    create.mutate(form); 
+    create.mutate(form);
   };
 
   return (
@@ -99,21 +79,17 @@ const Products = () => {
           </div>
           <div className="space-y-2">
             <Label htmlFor="base_price">Base Price (VNĐ)</Label>
-            <Input
+            <NumberInput
               id="base_price"
-              type="text"
-              // Hiển thị trực tiếp từ số sang format VN
-              value={form.base_price ? new Intl.NumberFormat('vi-VN').format(Number(form.base_price)) : ""}
-              onInput={(e: React.FormEvent<HTMLInputElement>) => {
-                const target = e.target as HTMLInputElement;
-                // 1. Lấy con số thô, loại bỏ mọi dấu chấm cũ
-                const raw = target.value.replace(/\D/g, "");
-                
-                // 2. Cập nhật thẳng vào form
-                setForm({ ...form, base_price: raw ? Number(raw) : 0 });
-              }}
+              format="thousand"
+              value={form.base_price}
+              onChange={(n) => setForm({ ...form, base_price: n })}
               placeholder="0"
             />
+          </div>
+          <div className="space-y-2">
+            <Label>Tag</Label>
+            <TagSelect value={form.tag} onChange={(t) => setForm({ ...form, tag: t })} />
           </div>
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="description">Long Description</Label>
@@ -158,7 +134,10 @@ const Products = () => {
                     )}
                   </div>
                   <div className="p-4 space-y-1">
-                    <div className="font-mono text-xs text-primary">{p.id}</div>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="font-mono text-xs text-primary">{p.id}</div>
+                      {p.tag && <Badge variant="secondary">{p.tag}</Badge>}
+                    </div>
                     <div className="font-semibold text-foreground line-clamp-1">{p.name}</div>
                     <div className="text-sm text-muted-foreground">
                       {Number(p.base_price).toLocaleString('vi-VN')} VNĐ
