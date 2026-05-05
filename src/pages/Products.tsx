@@ -30,6 +30,7 @@ const Products = () => {
       toast.success("Product saved");
       setForm(empty);
       qc.invalidateQueries({ queryKey: ["products"] });
+      qc.invalidateQueries({ queryKey: ["tags"] });
     },
   });
 
