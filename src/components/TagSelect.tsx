@@ -50,13 +50,10 @@ export const TagSelect = ({ value, onChange, allowNone = true, placeholder = "Se
   const [name, setName] = useState("");
 
   const create = useMutation({
-    mutationFn: async (n: string) => {
-      const t = await api.post<Tag>("/tags", { name: n });
-      return { ...t, name: t?.name ?? n };
-    },
-    onSuccess: async (t) => {
+    mutationFn: (n: string) => api.post<Tag>("/tags", { name: n }),
+    onSuccess: (t) => {
       toast.success("Tag added");
-      await qc.refetchQueries({ queryKey: ["tags"] });
+      qc.invalidateQueries({ queryKey: ["tags"] });
       onChange(t.name);
       setOpen(false);
       setName("");
