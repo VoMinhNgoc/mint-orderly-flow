@@ -27,8 +27,12 @@ const parseRawPrice = (val: string) => {
 const Products = () => {
   const qc = useQueryClient();
   const [form, setForm] = useState<Product>(empty);
-  // Dùng để quản lý chuỗi hiển thị có dấu chấm (ví dụ: "100.000")
-  const [displayPrice, setDisplayPrice] = useState("");
+
+  // Thêm hàm định dạng tiền Việt để dùng cho cả Input và Catalog
+  const formatVND = (val: number) => {
+    if (!val) return "";
+    return new Intl.NumberFormat('vi-VN').format(val);
+};
 
   const resetForm = () => {
     setForm(empty);
@@ -56,7 +60,8 @@ const Products = () => {
       toast.error("Product ID and Name are required");
       return;
     }
-    create.mutate({ ...form, base_price: Number(parseRawPrice(form.base_price.toString())) });
+    // Gửi trực tiếp vì base_price đã là kiểu Number
+    create.mutate(form); 
   };
 
   return (
@@ -99,15 +104,14 @@ const Products = () => {
             <Input
               id="base_price"
               type="text" 
-              // Dùng trực tiếp hàm format ở đây để đảm bảo hiển thị luôn đúng
-              value={form.base_price ? new Intl.NumberFormat('vi-VN').format(Number(form.base_price)) : ""}
+              // Hiển thị số đã format dấu chấm (ví dụ: 100.000)
+              value={formatVND(Number(form.base_price))}
               onChange={(e) => {
-                // 1. Chỉ lấy số thô
-                const rawValue = e.target.value.replace(/\D/g, "");
+                // 1. Chỉ lấy ký tự số
+                const raw = e.target.value.replace(/\D/g, "");
                 
-                // 2. Cập nhật trực tiếp vào form (ép về kiểu Number)
-                // Khi form.base_price thay đổi, value ở trên sẽ tự động format lại
-                setForm({ ...form, base_price: rawValue ? Number(rawValue) : 0 });
+                // 2. Cập nhật vào form dưới dạng số thuần túy
+                setForm({ ...form, base_price: raw ? Number(raw) : 0 });
               }}
               placeholder="0"
             />
@@ -158,7 +162,7 @@ const Products = () => {
                     <div className="font-mono text-xs text-primary">{p.id}</div>
                     <div className="font-semibold text-foreground line-clamp-1">{p.name}</div>
                     <div className="text-sm text-muted-foreground">
-                      ${Number(p.base_price).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      {Number(p.base_price).toLocaleString('vi-VN')} VNĐ
                     </div>
                   </div>
                 </Card>
