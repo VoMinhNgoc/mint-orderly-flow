@@ -4,6 +4,7 @@ export type Product = {
   description: string;
   image_url: string;
   base_price: number;
+  tag?: string;
 };
 
 export type CartItem = {
@@ -17,6 +18,12 @@ export type CartItem = {
   product_price: number;
   markup_fee: number;
   expiry_date: string; // YYYY-MM-DD
+  tag?: string;
+};
+
+export type Tag = {
+  id?: number | string;
+  name: string;
 };
 
 export type OrderStatus = "pending" | "bought" | "canceled";
