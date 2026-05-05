@@ -36,7 +36,6 @@ const Products = () => {
 
   const resetForm = () => {
     setForm(empty);
-    setDisplayPrice(""); 
   };
   
   const { data: products = [], isLoading } = useQuery({
@@ -48,8 +47,7 @@ const Products = () => {
     mutationFn: (p: Product) => api.post<Product>("/products", p),
     onSuccess: () => {
       toast.success("Product saved");
-      setForm(empty);
-      setDisplayPrice(""); // Thêm dòng này để xóa trắng ô nhập giá sau khi lưu
+      resetForm(); // Gọi hàm reset đã sửa ở trên
       qc.invalidateQueries({ queryKey: ["products"] });
     },
   });
