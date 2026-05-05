@@ -77,6 +77,18 @@ const Products = () => {
               onChange={(e) => setForm({ ...form, image_url: e.target.value })}
               placeholder="https://…"
             />
+            
+            {/* Đoạn code mới để hiện ảnh Preview nè */}
+            {form.image_url && (
+              <div className="mt-2 aspect-square w-32 overflow-hidden rounded-lg border bg-muted">
+                <img 
+                  src={form.image_url.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/").split("?")[0]} 
+                  alt="Preview" 
+                  className="h-full w-full object-cover"
+                  onError={(e) => (e.currentTarget.style.display = 'none')} // Ẩn nếu link sai
+                />
+              </div>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="base_price">Base Price (VNĐ)</Label>
