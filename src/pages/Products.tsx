@@ -101,14 +101,15 @@ const Products = () => {
             <Label htmlFor="base_price">Base Price (VNĐ)</Label>
             <Input
               id="base_price"
-              type="text" 
-              // Hiển thị số đã format dấu chấm (ví dụ: 100.000)
-              value={formatVND(Number(form.base_price))}
-              onChange={(e) => {
-                // 1. Chỉ lấy ký tự số
-                const raw = e.target.value.replace(/\D/g, "");
+              type="text"
+              // Hiển thị trực tiếp từ số sang format VN
+              value={form.base_price ? new Intl.NumberFormat('vi-VN').format(Number(form.base_price)) : ""}
+              onInput={(e: React.FormEvent<HTMLInputElement>) => {
+                const target = e.target as HTMLInputElement;
+                // 1. Lấy con số thô, loại bỏ mọi dấu chấm cũ
+                const raw = target.value.replace(/\D/g, "");
                 
-                // 2. Cập nhật vào form dưới dạng số thuần túy
+                // 2. Cập nhật thẳng vào form
                 setForm({ ...form, base_price: raw ? Number(raw) : 0 });
               }}
               placeholder="0"
