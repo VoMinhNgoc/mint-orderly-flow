@@ -129,8 +129,8 @@ const Processing = () => {
                           <td className="p-3 text-right">{o.base_sets}</td>
                           <td className="p-3 text-right">{o.split_sets}</td>
                           <td className="p-3 text-right">{o.units_per_set}</td>
-                          <td className="p-3 text-right">${Number(o.product_price).toFixed(2)}</td>
-                          <td className="p-3 text-right">${Number(o.markup_fee).toFixed(2)}</td>
+                          <td className="p-3 text-right">{Number(o.product_price).toLocaleString('vi-VN')}</td>
+                          <td className="p-3 text-right">{Number(o.markup_fee).toLocaleString('vi-VN')}</td>
                         </tr>
                       </tbody>
                     </table>
@@ -160,7 +160,7 @@ const Processing = () => {
                     </div>
                     <div className="mt-4 space-y-1">
                       <div className="text-sm text-muted-foreground">Total Due</div>
-                      <div className="text-2xl font-bold text-primary">${total.toFixed(2)}</div>
+                      <div className="text-2xl font-bold text-primary">{total.toLocaleString('vi-VN')} VNĐ</div>
                       <div className="text-xs text-muted-foreground">
                         (Price + Markup) × Base × Split × Units
                       </div>
