@@ -98,9 +98,7 @@ const Processing = () => {
             const total = calcTotal(
               o.product_price,
               o.markup_fee,
-              o.base_sets,
-              o.split_sets,
-              o.units_per_set
+              o.split_sets
             );
             return (
               <Card key={o.id} className="rounded-2xl shadow-[var(--shadow-card)] overflow-hidden">
