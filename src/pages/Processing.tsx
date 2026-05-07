@@ -54,9 +54,7 @@ const Processing = () => {
       const total = calcTotal(
         buyOrder.product_price,
         buyOrder.markup_fee,
-        buyOrder.base_sets,
-        buyOrder.split_sets,
-        buyOrder.units_per_set
+        buyOrder.split_sets
       );
       const customer = await api.post<{ id: number | string }>("/customers", {
         name: form.name,
@@ -100,9 +98,7 @@ const Processing = () => {
             const total = calcTotal(
               o.product_price,
               o.markup_fee,
-              o.base_sets,
-              o.split_sets,
-              o.units_per_set
+              o.split_sets
             );
             return (
               <Card key={o.id} className="rounded-2xl shadow-[var(--shadow-card)] overflow-hidden">

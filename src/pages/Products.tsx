@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
 import { toast } from "sonner";
+import { Pencil, Trash2 } from "lucide-react";
 import { api } from "@/lib/api";
 import type { Product } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -12,25 +12,62 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { NumberInput } from "@/components/NumberInput";
 import { TagSelect } from "@/components/TagSelect";
+import { ProductIdLink } from "@/components/ProductIdLink";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const empty: Product = { id: "", name: "", description: "", image_url: "", base_price: 0, tag: undefined };
 
 const Products = () => {
   const qc = useQueryClient();
   const [form, setForm] = useState<Product>(empty);
+  const [isEditing, setIsEditing] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products"],
     queryFn: () => api.get<Product[]>("/products"),
   });
 
+  const resetForm = () => {
+    setForm(empty);
+    setIsEditing(false);
+  };
+
   const create = useMutation({
     mutationFn: (p: Product) => api.post<Product>("/products", p),
     onSuccess: () => {
       toast.success("Product saved");
-      setForm(empty);
+      resetForm();
       qc.invalidateQueries({ queryKey: ["products"] });
       qc.invalidateQueries({ queryKey: ["tags"] });
+    },
+  });
+
+  const update = useMutation({
+    mutationFn: (p: Product) => api.put<Product>(`/products/${p.id}`, p),
+    onSuccess: () => {
+      toast.success("Product updated");
+      resetForm();
+      qc.invalidateQueries({ queryKey: ["products"] });
+      qc.invalidateQueries({ queryKey: ["tags"] });
+    },
+  });
+
+  const remove = useMutation({
+    mutationFn: (id: string) => api.del<void>(`/products/${id}`),
+    onSuccess: () => {
+      toast.success("Product deleted");
+      setDeleteId(null);
+      qc.invalidateQueries({ queryKey: ["products"] });
     },
   });
 
@@ -40,8 +77,17 @@ const Products = () => {
       toast.error("Product ID and Name are required");
       return;
     }
-    create.mutate(form);
+    if (isEditing) update.mutate(form);
+    else create.mutate(form);
   };
+
+  const onEdit = (p: Product) => {
+    setForm(p);
+    setIsEditing(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const pending = create.isPending || update.isPending;
 
   return (
     <div className="space-y-8">
@@ -59,6 +105,7 @@ const Products = () => {
               value={form.id}
               onChange={(e) => setForm({ ...form, id: e.target.value })}
               placeholder="yt09"
+              disabled={isEditing}
             />
           </div>
           <div className="space-y-2">
@@ -77,15 +124,13 @@ const Products = () => {
               onChange={(e) => setForm({ ...form, image_url: e.target.value })}
               placeholder="https://…"
             />
-            
-            {/* Đoạn code mới để hiện ảnh Preview nè */}
             {form.image_url && (
               <div className="mt-2 aspect-square w-32 overflow-hidden rounded-lg border bg-muted">
-                <img 
-                  src={form.image_url.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/").split("?")[0]} 
-                  alt="Preview" 
+                <img
+                  src={form.image_url.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/").split("?")[0]}
+                  alt="Preview"
                   className="h-full w-full object-cover"
-                  onError={(e) => (e.currentTarget.style.display = 'none')} // Ẩn nếu link sai
+                  onError={(e) => (e.currentTarget.style.display = "none")}
                 />
               </div>
             )}
@@ -113,10 +158,15 @@ const Products = () => {
               onChange={(e) => setForm({ ...form, description: e.target.value })}
             />
           </div>
-          <div className="md:col-span-2">
-            <Button type="submit" disabled={create.isPending}>
-              {create.isPending ? "Saving…" : "Save Product"}
+          <div className="md:col-span-2 flex gap-2">
+            <Button type="submit" disabled={pending}>
+              {pending ? "Saving…" : isEditing ? "Update Product" : "Save Product"}
             </Button>
+            {isEditing && (
+              <Button type="button" variant="outline" onClick={resetForm}>
+                Cancel
+              </Button>
+            )}
           </div>
         </form>
       </Card>
@@ -130,38 +180,67 @@ const Products = () => {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {products.map((p) => (
-              <Link key={p.id} to={`/products/${p.id}`}>
-                <Card className="overflow-hidden rounded-2xl shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-soft)] transition-shadow">
-                  <div className="aspect-square bg-muted">
-                    {p.image_url ? (
-                      <img
-                        src={p.image_url}
-                        alt={p.name}
-                        className="h-full w-full object-cover"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="h-full w-full flex items-center justify-center text-muted-foreground text-sm">
-                        No image
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-4 space-y-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="font-mono text-xs text-primary">{p.id}</div>
-                      {p.tag && <Badge variant="secondary">{p.tag}</Badge>}
+              <Card
+                key={p.id}
+                className="overflow-hidden rounded-2xl shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-soft)] transition-shadow flex flex-col"
+              >
+                <div className="aspect-square bg-muted">
+                  {p.image_url ? (
+                    <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" loading="lazy" />
+                  ) : (
+                    <div className="h-full w-full flex items-center justify-center text-muted-foreground text-sm">
+                      No image
                     </div>
-                    <div className="font-semibold text-foreground line-clamp-1">{p.name}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {Number(p.base_price).toLocaleString('vi-VN')} VNĐ
-                    </div>
+                  )}
+                </div>
+                <div className="p-4 space-y-2 flex-1 flex flex-col">
+                  <div className="flex items-center justify-between gap-2">
+                    <ProductIdLink id={p.id} />
+                    {p.tag && <Badge variant="secondary">{p.tag}</Badge>}
                   </div>
-                </Card>
-              </Link>
+                  <div className="font-semibold text-foreground line-clamp-1">{p.name}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {Number(p.base_price).toLocaleString("vi-VN")} VNĐ
+                  </div>
+                  <div className="flex gap-2 pt-2 mt-auto">
+                    <Button size="sm" variant="outline" className="flex-1" onClick={() => onEdit(p)}>
+                      <Pencil className="h-4 w-4" /> Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="flex-1"
+                      onClick={() => setDeleteId(p.id)}
+                    >
+                      <Trash2 className="h-4 w-4" /> Delete
+                    </Button>
+                  </div>
+                </div>
+              </Card>
             ))}
           </div>
         )}
       </section>
+
+      <AlertDialog open={!!deleteId} onOpenChange={(o) => !o && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xóa sản phẩm?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Hành động này không thể hoàn tác. Sản phẩm <span className="font-mono">{deleteId}</span> sẽ bị xóa vĩnh viễn.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteId && remove.mutate(deleteId)}
+              disabled={remove.isPending}
+            >
+              {remove.isPending ? "Deleting…" : "Xóa"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
