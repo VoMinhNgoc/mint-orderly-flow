@@ -54,9 +54,7 @@ const Processing = () => {
       const total = calcTotal(
         buyOrder.product_price,
         buyOrder.markup_fee,
-        buyOrder.base_sets,
-        buyOrder.split_sets,
-        buyOrder.units_per_set
+        buyOrder.split_sets
       );
       const customer = await api.post<{ id: number | string }>("/customers", {
         name: form.name,
