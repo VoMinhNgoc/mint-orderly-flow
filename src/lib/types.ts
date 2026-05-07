@@ -60,7 +60,5 @@ export type Customer = {
 export const calcTotal = (
   price: number,
   markup: number,
-  baseSets: number,
-  splitSets: number,
-  units: number
-) => (Number(price) + Number(markup)) * Number(baseSets) * Number(splitSets) * Number(units);
+  splitSets: number
+) => (Number(price) + Number(markup)) * Number(splitSets);
