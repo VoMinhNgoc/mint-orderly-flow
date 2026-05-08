@@ -1,24 +1,16 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Trash2, Plus, ArrowRight } from "lucide-react";
+import { Trash2, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
-import type { CartItem, Product } from "@/lib/types";
+import type { CartItem } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ProductIdLink } from "@/components/ProductIdLink";
 import { NumberInput } from "@/components/NumberInput";
-import { TagSelect, useTags } from "@/components/TagSelect";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { useTags } from "@/components/TagSelect";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -28,53 +20,29 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-type DraftItem = Omit<CartItem, "id">;
-
-const blank = (p?: Product): DraftItem => ({
-  product_id: p?.id ?? "",
-  product_name: p?.name ?? "",
-  simple_description: "",
-  base_sets: 1,
-  split_sets: 1,
-  units_per_set: 1,
-  product_price: p?.base_price ?? 0,
-  markup_fee: 0,
-  expiry_date: new Date().toISOString().slice(0, 10),
-  tag: p?.tag,
-});
-
 const ALL = "__all__";
+
+const lineTotal = (it: CartItem) =>
+  (Number(it.product_price) + Number(it.markup_fee)) * Number(it.split_sets);
 
 const Cart = () => {
   const qc = useQueryClient();
-  const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState<DraftItem>(blank());
   const [filterTag, setFilterTag] = useState<string>(ALL);
 
-  const { data: items = [], isLoading } = useQuery({
+  const { data: serverItems = [], isLoading } = useQuery({
     queryKey: ["cart"],
     queryFn: () => api.get<CartItem[]>("/cart"),
   });
-  const { data: products = [] } = useQuery({
-    queryKey: ["products"],
-    queryFn: () => api.get<Product[]>("/products"),
-  });
   const { data: tags = [] } = useTags();
 
-  const addItem = useMutation({
-    mutationFn: (d: DraftItem) => api.post<CartItem>("/cart", d),
-    onSuccess: () => {
-      toast.success("Added to cart");
-      qc.invalidateQueries({ queryKey: ["cart"] });
-      setOpen(false);
-      setDraft(blank());
-    },
-  });
+  // Local optimistic state for inline edits
+  const [items, setItems] = useState<CartItem[]>([]);
+  useEffect(() => setItems(serverItems), [serverItems]);
 
   const delItem = useMutation({
     mutationFn: (id: CartItem["id"]) => api.del<void>(`/cart/${id}`),
     onSuccess: () => {
-      toast.success("Removed");
+      toast.success("Đã xóa");
       qc.invalidateQueries({ queryKey: ["cart"] });
     },
   });
@@ -96,15 +64,26 @@ const Cart = () => {
       await api.del(`/cart/${item.id}`);
     },
     onSuccess: () => {
-      toast.success("Moved to Processing");
+      toast.success("Chuyển sang Processing");
       qc.invalidateQueries({ queryKey: ["cart"] });
       qc.invalidateQueries({ queryKey: ["orders"] });
     },
   });
 
-  const onPickProduct = (id: string) => {
-    const p = products.find((x) => x.id === id);
-    if (p) setDraft({ ...draft, product_id: p.id, product_name: p.name, product_price: p.base_price, tag: p.tag ?? draft.tag });
+  // Debounced PUT per row
+  const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const patchRow = (id: CartItem["id"], patch: Partial<CartItem>) => {
+    setItems((prev) => prev.map((it) => (it.id === id ? { ...it, ...patch } : it)));
+    const key = String(id);
+    if (timers.current[key]) clearTimeout(timers.current[key]);
+    timers.current[key] = setTimeout(() => {
+      const current = (items.find((x) => x.id === id) ?? {}) as CartItem;
+      const next = { ...current, ...patch };
+      api.put<CartItem>(`/cart/${id}`, next).catch(() => {
+        // toast already shown by api layer; refetch to sync
+        qc.invalidateQueries({ queryKey: ["cart"] });
+      });
+    }, 500);
   };
 
   const filtered = useMemo(
@@ -113,114 +92,26 @@ const Cart = () => {
   );
 
   const filteredTotal = useMemo(
-    () =>
-      filtered.reduce(
-        (sum, it) =>
-          sum +
-          (Number(it.product_price) + Number(it.markup_fee)) *
-            Number(it.base_sets) *
-            Number(it.split_sets) *
-            Number(it.units_per_set),
-        0
-      ),
+    () => filtered.reduce((sum, it) => sum + lineTotal(it), 0),
     [filtered]
   );
+
+  const proceedAll = async () => {
+    for (const it of filtered) await proceed.mutateAsync(it);
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Shopping Cart</h1>
-          <p className="text-muted-foreground">Draft orders before transaction.</p>
+          <p className="text-muted-foreground">Chỉnh trực tiếp trên dòng. Tự động lưu.</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-1" /> Add Item
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Add Cart Item</DialogTitle>
-            </DialogHeader>
-            <div className="grid gap-3 py-2">
-              <div className="space-y-1.5">
-                <Label>Product</Label>
-                <Select value={draft.product_id} onValueChange={onPickProduct}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a product" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {products.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.id} — {p.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Simple Description</Label>
-                <Input
-                  value={draft.simple_description}
-                  onChange={(e) => setDraft({ ...draft, simple_description: e.target.value })}
-                />
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                <div className="space-y-1.5">
-                  <Label>Base Sets</Label>
-                  <NumberInput value={draft.base_sets} onChange={(n) => setDraft({ ...draft, base_sets: n })} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Split Sets</Label>
-                  <NumberInput value={draft.split_sets} onChange={(n) => setDraft({ ...draft, split_sets: n })} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Units / Set</Label>
-                  <NumberInput value={draft.units_per_set} onChange={(n) => setDraft({ ...draft, units_per_set: n })} />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1.5">
-                  <Label>Product Price (VNĐ)</Label>
-                  <NumberInput
-                    format="thousand"
-                    value={draft.product_price}
-                    onChange={(n) => setDraft({ ...draft, product_price: n })}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Markup Fee (VNĐ)</Label>
-                  <NumberInput
-                    format="thousand"
-                    value={draft.markup_fee}
-                    onChange={(n) => setDraft({ ...draft, markup_fee: n })}
-                  />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Expiry Date</Label>
-                <Input
-                  type="date"
-                  value={draft.expiry_date}
-                  onChange={(e) => setDraft({ ...draft, expiry_date: e.target.value })}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Tag</Label>
-                <TagSelect value={draft.tag} onChange={(t) => setDraft({ ...draft, tag: t })} />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button
-                onClick={() => addItem.mutate(draft)}
-                disabled={!draft.product_id || addItem.isPending}
-              >
-                {addItem.isPending ? "Adding…" : "Add"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        {filtered.length > 0 && (
+          <Button onClick={proceedAll} disabled={proceed.isPending}>
+            <ArrowRight className="h-4 w-4 mr-1" /> Proceed All ({filtered.length})
+          </Button>
+        )}
       </div>
 
       <Card className="p-4 rounded-2xl shadow-[var(--shadow-card)] flex flex-wrap items-center gap-3">
@@ -256,13 +147,13 @@ const Cart = () => {
                 <th className="text-left p-3 font-medium">Product ID</th>
                 <th className="text-left p-3 font-medium">Name</th>
                 <th className="text-left p-3 font-medium">Tag</th>
-                <th className="text-left p-3 font-medium">Description</th>
-                <th className="text-right p-3 font-medium">Base Sets</th>
-                <th className="text-right p-3 font-medium">Split Sets</th>
-                <th className="text-right p-3 font-medium">Units/Set</th>
-                <th className="text-right p-3 font-medium">Price</th>
-                <th className="text-right p-3 font-medium">Markup</th>
+                <th className="text-right p-3 font-medium w-24">Base Sets</th>
+                <th className="text-right p-3 font-medium w-24">Split Sets</th>
+                <th className="text-right p-3 font-medium w-24">Units/Set</th>
+                <th className="text-right p-3 font-medium w-32">Price</th>
+                <th className="text-right p-3 font-medium w-32">Markup</th>
                 <th className="text-left p-3 font-medium">Expiry</th>
+                <th className="text-right p-3 font-medium">Total</th>
                 <th className="p-3"></th>
               </tr>
             </thead>
@@ -270,20 +161,56 @@ const Cart = () => {
               {isLoading ? (
                 <tr><td colSpan={11} className="p-6 text-center text-muted-foreground">Loading…</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={11} className="p-6 text-center text-muted-foreground">Không có sản phẩm.</td></tr>
+                <tr><td colSpan={11} className="p-6 text-center text-muted-foreground">Giỏ hàng trống. Thêm từ trang Products.</td></tr>
               ) : (
                 filtered.map((it) => (
-                  <tr key={it.id} className="border-t border-border">
+                  <tr key={it.id} className="border-t border-border align-middle">
                     <td className="p-3"><ProductIdLink id={it.product_id} /></td>
                     <td className="p-3">{it.product_name}</td>
                     <td className="p-3">{it.tag ? <Badge variant="secondary">{it.tag}</Badge> : <span className="text-muted-foreground">—</span>}</td>
-                    <td className="p-3">{it.simple_description}</td>
-                    <td className="p-3 text-right">{it.base_sets}</td>
-                    <td className="p-3 text-right">{it.split_sets}</td>
-                    <td className="p-3 text-right">{it.units_per_set}</td>
-                    <td className="p-3 text-right">{Number(it.product_price).toLocaleString('vi-VN')}</td>
-                    <td className="p-3 text-right">{Number(it.markup_fee).toLocaleString('vi-VN')}</td>
-                    <td className="p-3">{it.expiry_date}</td>
+                    <td className="p-2">
+                      <NumberInput
+                        className="text-right"
+                        value={it.base_sets}
+                        onChange={(n) => patchRow(it.id, { base_sets: n })}
+                      />
+                    </td>
+                    <td className="p-2">
+                      <NumberInput
+                        className="text-right"
+                        value={it.split_sets}
+                        onChange={(n) => patchRow(it.id, { split_sets: n })}
+                      />
+                    </td>
+                    <td className="p-2">
+                      <NumberInput
+                        className="text-right"
+                        value={it.units_per_set}
+                        onChange={(n) => patchRow(it.id, { units_per_set: n })}
+                      />
+                    </td>
+                    <td className="p-2">
+                      <NumberInput
+                        className="text-right"
+                        format="thousand"
+                        value={it.product_price}
+                        onChange={(n) => patchRow(it.id, { product_price: n })}
+                      />
+                    </td>
+                    <td className="p-2">
+                      <NumberInput
+                        className="text-right"
+                        format="thousand"
+                        value={it.markup_fee}
+                        onChange={(n) => patchRow(it.id, { markup_fee: n })}
+                      />
+                    </td>
+                    <td className="p-3">
+                      <Input type="date" value={it.expiry_date} readOnly className="bg-muted cursor-not-allowed" />
+                    </td>
+                    <td className="p-3 text-right font-semibold text-primary whitespace-nowrap">
+                      {lineTotal(it).toLocaleString("vi-VN")}
+                    </td>
                     <td className="p-3">
                       <div className="flex gap-2 justify-end">
                         <Button
