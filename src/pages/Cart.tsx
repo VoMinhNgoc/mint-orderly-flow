@@ -48,6 +48,7 @@ const ALL = "__all__";
 
 const Cart = () => {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<DraftItem>(blank());
   const [filterTag, setFilterTag] = useState<string>(ALL);
