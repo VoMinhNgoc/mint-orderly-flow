@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, ShoppingCart } from "lucide-react";
 import { api } from "@/lib/api";
 import type { Product } from "@/lib/types";
 import { Button } from "@/components/ui/button";
