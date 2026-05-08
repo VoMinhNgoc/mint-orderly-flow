@@ -5,7 +5,6 @@ export type Product = {
   image_url: string;
   base_price: number;
   tag?: string;
-  expiry_date?: string; // YYYY-MM-DD
 };
 
 export type CartItem = {

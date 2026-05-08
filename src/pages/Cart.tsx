@@ -1,10 +1,9 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Trash2, Plus, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
-import { calcTotal, type CartItem, type Product } from "@/lib/types";
+import type { CartItem, Product } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -48,7 +47,6 @@ const ALL = "__all__";
 
 const Cart = () => {
   const qc = useQueryClient();
-  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<DraftItem>(blank());
   const [filterTag, setFilterTag] = useState<string>(ALL);
@@ -82,19 +80,31 @@ const Cart = () => {
   });
 
   const proceed = useMutation({
-    mutationFn: (cartItems: CartItem[]) =>
-      api.post("/proceed-order", { items: cartItems }),
+    mutationFn: async (item: CartItem) => {
+      await api.post("/orders", {
+        product_id: item.product_id,
+        product_name: item.product_name,
+        simple_description: item.simple_description,
+        base_sets: item.base_sets,
+        split_sets: item.split_sets,
+        units_per_set: item.units_per_set,
+        product_price: item.product_price,
+        markup_fee: item.markup_fee,
+        tag: item.tag,
+        status: "pending",
+      });
+      await api.del(`/cart/${item.id}`);
+    },
     onSuccess: () => {
-      toast.success("Đã chuyển sang Processing");
+      toast.success("Moved to Processing");
       qc.invalidateQueries({ queryKey: ["cart"] });
       qc.invalidateQueries({ queryKey: ["orders"] });
-      navigate("/processing");
     },
   });
 
   const onPickProduct = (id: string) => {
     const p = products.find((x) => x.id === id);
-    if (p) setDraft({ ...draft, product_id: p.id, product_name: p.name, product_price: p.base_price, tag: p.tag ?? draft.tag, expiry_date: p.expiry_date ?? draft.expiry_date });
+    if (p) setDraft({ ...draft, product_id: p.id, product_name: p.name, product_price: p.base_price, tag: p.tag ?? draft.tag });
   };
 
   const filtered = useMemo(
@@ -105,7 +115,12 @@ const Cart = () => {
   const filteredTotal = useMemo(
     () =>
       filtered.reduce(
-        (sum, it) => sum + calcTotal(it.product_price, it.markup_fee, it.split_sets),
+        (sum, it) =>
+          sum +
+          (Number(it.product_price) + Number(it.markup_fee)) *
+            Number(it.base_sets) *
+            Number(it.split_sets) *
+            Number(it.units_per_set),
         0
       ),
     [filtered]
@@ -231,13 +246,6 @@ const Cart = () => {
             {filteredTotal.toLocaleString("vi-VN")} VNĐ
           </span>
         </div>
-        <Button
-          onClick={() => proceed.mutate(filtered)}
-          disabled={filtered.length === 0 || proceed.isPending}
-        >
-          <ArrowRight className="h-4 w-4 mr-1" />
-          {proceed.isPending ? "Đang xử lý…" : "Proceed to Transaction"}
-        </Button>
       </Card>
 
       <Card className="rounded-2xl shadow-[var(--shadow-card)] overflow-hidden">
@@ -278,6 +286,14 @@ const Cart = () => {
                     <td className="p-3">{it.expiry_date}</td>
                     <td className="p-3">
                       <div className="flex gap-2 justify-end">
+                        <Button
+                          size="sm"
+                          variant="default"
+                          onClick={() => proceed.mutate(it)}
+                          disabled={proceed.isPending}
+                        >
+                          <ArrowRight className="h-4 w-4 mr-1" /> Proceed
+                        </Button>
                         <Button
                           size="sm"
                           variant="destructive"
