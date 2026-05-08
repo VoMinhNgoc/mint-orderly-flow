@@ -231,6 +231,13 @@ const Cart = () => {
             {filteredTotal.toLocaleString("vi-VN")} VNĐ
           </span>
         </div>
+        <Button
+          onClick={() => proceed.mutate(filtered)}
+          disabled={filtered.length === 0 || proceed.isPending}
+        >
+          <ArrowRight className="h-4 w-4 mr-1" />
+          {proceed.isPending ? "Đang xử lý…" : "Proceed to Transaction"}
+        </Button>
       </Card>
 
       <Card className="rounded-2xl shadow-[var(--shadow-card)] overflow-hidden">
