@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, ShoppingCart } from "lucide-react";
 import { api } from "@/lib/api";
-import type { Product } from "@/lib/types";
+import type { Product, CartItem } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,7 +24,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const empty: Product = { id: "", name: "", description: "", image_url: "", base_price: 0, tag: undefined };
+const today = () => new Date().toISOString().slice(0, 10);
+const empty: Product = { id: "", name: "", description: "", image_url: "", base_price: 0, tag: undefined, expiry_date: today() };
 
 const Products = () => {
   const qc = useQueryClient();
