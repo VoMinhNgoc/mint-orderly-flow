@@ -158,7 +158,7 @@ const Processing = () => {
                       <div className="text-sm text-muted-foreground">Total Due</div>
                       <div className="text-2xl font-bold text-primary">{total.toLocaleString('vi-VN')} VNĐ</div>
                       <div className="text-xs text-muted-foreground">
-                        (Price + Markup) × Base × Split × Units
+                        (Price + Markup) × Split Sets
                       </div>
                     </div>
                   </aside>

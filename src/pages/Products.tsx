@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, ShoppingCart } from "lucide-react";
 import { api } from "@/lib/api";
-import type { Product } from "@/lib/types";
+import type { Product, CartItem } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,7 +24,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const empty: Product = { id: "", name: "", description: "", image_url: "", base_price: 0, tag: undefined };
+const today = () => new Date().toISOString().slice(0, 10);
+const empty: Product = { id: "", name: "", description: "", image_url: "", base_price: 0, tag: undefined, expiry_date: today() };
 
 const Products = () => {
   const qc = useQueryClient();
@@ -68,6 +69,28 @@ const Products = () => {
       toast.success("Product deleted");
       setDeleteId(null);
       qc.invalidateQueries({ queryKey: ["products"] });
+    },
+  });
+
+  const addToCart = useMutation({
+    mutationFn: (p: Product) => {
+      const item: Omit<CartItem, "id"> = {
+        product_id: p.id,
+        product_name: p.name,
+        simple_description: "",
+        base_sets: 1,
+        split_sets: 1,
+        units_per_set: 1,
+        product_price: p.base_price,
+        markup_fee: 0,
+        expiry_date: p.expiry_date || today(),
+        tag: p.tag,
+      };
+      return api.post<CartItem>("/cart", item);
+    },
+    onSuccess: () => {
+      toast.success("Added to cart");
+      qc.invalidateQueries({ queryKey: ["cart"] });
     },
   });
 
@@ -149,6 +172,15 @@ const Products = () => {
             <Label>Tag</Label>
             <TagSelect value={form.tag} onChange={(t) => setForm({ ...form, tag: t })} />
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="expiry_date">Expiry Date</Label>
+            <Input
+              id="expiry_date"
+              type="date"
+              value={form.expiry_date ?? ""}
+              onChange={(e) => setForm({ ...form, expiry_date: e.target.value })}
+            />
+          </div>
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="description">Long Description</Label>
             <Textarea
@@ -202,6 +234,17 @@ const Products = () => {
                   <div className="text-sm text-muted-foreground">
                     {Number(p.base_price).toLocaleString("vi-VN")} VNĐ
                   </div>
+                  {p.expiry_date && (
+                    <div className="text-xs text-muted-foreground">HSD: {p.expiry_date}</div>
+                  )}
+                  <Button
+                    size="sm"
+                    className="w-full mt-2"
+                    onClick={() => addToCart.mutate(p)}
+                    disabled={addToCart.isPending}
+                  >
+                    <ShoppingCart className="h-4 w-4 mr-1" /> Add to Cart
+                  </Button>
                   <div className="flex gap-2 pt-2 mt-auto">
                     <Button size="sm" variant="outline" className="flex-1" onClick={() => onEdit(p)}>
                       <Pencil className="h-4 w-4" /> Edit
