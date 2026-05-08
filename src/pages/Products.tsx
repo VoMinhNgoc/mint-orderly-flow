@@ -72,6 +72,28 @@ const Products = () => {
     },
   });
 
+  const addToCart = useMutation({
+    mutationFn: (p: Product) => {
+      const item: Omit<CartItem, "id"> = {
+        product_id: p.id,
+        product_name: p.name,
+        simple_description: "",
+        base_sets: 1,
+        split_sets: 1,
+        units_per_set: 1,
+        product_price: p.base_price,
+        markup_fee: 0,
+        expiry_date: p.expiry_date || today(),
+        tag: p.tag,
+      };
+      return api.post<CartItem>("/cart", item);
+    },
+    onSuccess: () => {
+      toast.success("Added to cart");
+      qc.invalidateQueries({ queryKey: ["cart"] });
+    },
+  });
+
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.id.trim() || !form.name.trim()) {
