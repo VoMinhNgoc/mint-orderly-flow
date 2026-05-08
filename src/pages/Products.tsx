@@ -234,6 +234,17 @@ const Products = () => {
                   <div className="text-sm text-muted-foreground">
                     {Number(p.base_price).toLocaleString("vi-VN")} VNĐ
                   </div>
+                  {p.expiry_date && (
+                    <div className="text-xs text-muted-foreground">HSD: {p.expiry_date}</div>
+                  )}
+                  <Button
+                    size="sm"
+                    className="w-full mt-2"
+                    onClick={() => addToCart.mutate(p)}
+                    disabled={addToCart.isPending}
+                  >
+                    <ShoppingCart className="h-4 w-4 mr-1" /> Add to Cart
+                  </Button>
                   <div className="flex gap-2 pt-2 mt-auto">
                     <Button size="sm" variant="outline" className="flex-1" onClick={() => onEdit(p)}>
                       <Pencil className="h-4 w-4" /> Edit
