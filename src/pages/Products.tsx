@@ -71,6 +71,26 @@ const Products = () => {
     },
   });
 
+  const addToCart = useMutation({
+    mutationFn: (p: Product) =>
+      api.post("/cart", {
+        product_id: p.id,
+        product_name: p.name,
+        simple_description: "",
+        base_sets: 1,
+        split_sets: 1,
+        units_per_set: 1,
+        product_price: p.base_price,
+        markup_fee: 0,
+        expiry_date: p.expiry_date || new Date().toISOString().slice(0, 10),
+        tag: p.tag,
+      }),
+    onSuccess: () => {
+      toast.success("Đã thêm vào giỏ hàng");
+      qc.invalidateQueries({ queryKey: ["cart"] });
+    },
+  });
+
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.id.trim() || !form.name.trim()) {
