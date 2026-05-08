@@ -280,14 +280,6 @@ const Cart = () => {
                       <div className="flex gap-2 justify-end">
                         <Button
                           size="sm"
-                          variant="default"
-                          onClick={() => proceed.mutate(it)}
-                          disabled={proceed.isPending}
-                        >
-                          <ArrowRight className="h-4 w-4 mr-1" /> Proceed
-                        </Button>
-                        <Button
-                          size="sm"
                           variant="destructive"
                           onClick={() => delItem.mutate(it.id)}
                         >
