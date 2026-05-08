@@ -24,7 +24,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const empty: Product = { id: "", name: "", description: "", image_url: "", base_price: 0, tag: undefined };
+const empty: Product = { id: "", name: "", description: "", image_url: "", base_price: 0, tag: undefined, expiry_date: "" };
 
 const Products = () => {
   const qc = useQueryClient();
