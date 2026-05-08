@@ -82,31 +82,19 @@ const Cart = () => {
   });
 
   const proceed = useMutation({
-    mutationFn: async (item: CartItem) => {
-      await api.post("/orders", {
-        product_id: item.product_id,
-        product_name: item.product_name,
-        simple_description: item.simple_description,
-        base_sets: item.base_sets,
-        split_sets: item.split_sets,
-        units_per_set: item.units_per_set,
-        product_price: item.product_price,
-        markup_fee: item.markup_fee,
-        tag: item.tag,
-        status: "pending",
-      });
-      await api.del(`/cart/${item.id}`);
-    },
+    mutationFn: (cartItems: CartItem[]) =>
+      api.post("/proceed-order", { items: cartItems }),
     onSuccess: () => {
-      toast.success("Moved to Processing");
+      toast.success("Đã chuyển sang Processing");
       qc.invalidateQueries({ queryKey: ["cart"] });
       qc.invalidateQueries({ queryKey: ["orders"] });
+      navigate("/processing");
     },
   });
 
   const onPickProduct = (id: string) => {
     const p = products.find((x) => x.id === id);
-    if (p) setDraft({ ...draft, product_id: p.id, product_name: p.name, product_price: p.base_price, tag: p.tag ?? draft.tag });
+    if (p) setDraft({ ...draft, product_id: p.id, product_name: p.name, product_price: p.base_price, tag: p.tag ?? draft.tag, expiry_date: p.expiry_date ?? draft.expiry_date });
   };
 
   const filtered = useMemo(
@@ -117,12 +105,7 @@ const Cart = () => {
   const filteredTotal = useMemo(
     () =>
       filtered.reduce(
-        (sum, it) =>
-          sum +
-          (Number(it.product_price) + Number(it.markup_fee)) *
-            Number(it.base_sets) *
-            Number(it.split_sets) *
-            Number(it.units_per_set),
+        (sum, it) => sum + calcTotal(it.product_price, it.markup_fee, it.split_sets),
         0
       ),
     [filtered]
