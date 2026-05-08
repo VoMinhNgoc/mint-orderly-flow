@@ -172,6 +172,15 @@ const Products = () => {
             <Label>Tag</Label>
             <TagSelect value={form.tag} onChange={(t) => setForm({ ...form, tag: t })} />
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="expiry_date">Expiry Date</Label>
+            <Input
+              id="expiry_date"
+              type="date"
+              value={form.expiry_date ?? ""}
+              onChange={(e) => setForm({ ...form, expiry_date: e.target.value })}
+            />
+          </div>
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="description">Long Description</Label>
             <Textarea
