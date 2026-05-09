@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { Trash2, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
@@ -27,6 +28,7 @@ const lineTotal = (it: CartItem) =>
 
 const Cart = () => {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [filterTag, setFilterTag] = useState<string>(ALL);
 
   const { data: serverItems = [], isLoading } = useQuery({
@@ -49,7 +51,8 @@ const Cart = () => {
 
   const proceed = useMutation({
     mutationFn: async (item: CartItem) => {
-      await api.post("/orders", {
+      await api.post("/proceed-order", {
+        cart_id: item.id,
         product_id: item.product_id,
         product_name: item.product_name,
         simple_description: item.simple_description,
@@ -59,14 +62,15 @@ const Cart = () => {
         product_price: item.product_price,
         markup_fee: item.markup_fee,
         tag: item.tag,
+        expiry_date: item.expiry_date,
         status: "pending",
       });
-      await api.del(`/cart/${item.id}`);
     },
     onSuccess: () => {
       toast.success("Chuyển sang Processing");
       qc.invalidateQueries({ queryKey: ["cart"] });
       qc.invalidateQueries({ queryKey: ["orders"] });
+      navigate("/processing");
     },
   });
 
