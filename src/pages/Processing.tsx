@@ -61,65 +61,16 @@ const Processing = () => {
       if (qty <= 0) throw new Error("Số lượng phải > 0");
       if (qty > left) throw new Error(`Vượt giới hạn. Còn lại ${left}.`);
 
-      const newAssignment: OrderAssignment = {
-        customer_name: form.name.trim(),
-        contact_info: form.contact_info.trim(),
-        tracking_number: form.tracking_number.trim(),
-        quantity: qty,
-      };
-
-      const productEntry: CustomerProduct = {
+      await api.post("/assign-customer", {
+        order_id: order.id,
         product_id: order.product_id,
         product_name: order.product_name,
         product_price: Number(order.product_price),
         markup_fee: Number(order.markup_fee),
+        customer_name: form.name.trim(),
+        contact_info: form.contact_info.trim(),
+        tracking_number: form.tracking_number.trim(),
         quantity: qty,
-        tracking_number: newAssignment.tracking_number,
-      };
-
-      // Find existing customer by name+contact
-      const existing = customers.find(
-        (c) =>
-          c.name.trim().toLowerCase() === newAssignment.customer_name.toLowerCase() &&
-          (c.contact_info ?? "").trim() === newAssignment.contact_info
-      );
-
-      if (existing) {
-        const product_details = [...(existing.product_details ?? []), productEntry];
-        const product_ids = Array.from(
-          new Set([...(existing.product_ids ?? []), order.product_id])
-        );
-        const suggested_amount = product_details.reduce(
-          (s, p) => s + (p.product_price + p.markup_fee) * p.quantity,
-          0
-        );
-        await api.patch(`/customers/${existing.id}`, {
-          ...existing,
-          product_ids,
-          product_details,
-          suggested_amount,
-          final_amount: suggested_amount,
-        });
-      } else {
-        const total = (productEntry.product_price + productEntry.markup_fee) * qty;
-        await api.post("/customers", {
-          name: newAssignment.customer_name,
-          contact_info: newAssignment.contact_info,
-          purchase_date: new Date().toISOString().slice(0, 10),
-          product_ids: [order.product_id],
-          product_details: [productEntry],
-          description: order.simple_description,
-          payment_status: "unpaid",
-          suggested_amount: total,
-          final_amount: total,
-        });
-      }
-
-      const nextAssignments = [...(order.assignments ?? []), newAssignment];
-      const totalAssigned = nextAssignments.reduce((s, a) => s + a.quantity, 0);
-      await api.patch(`/orders/${order.id}`, {
-        assignments: nextAssignments,
-        status: totalAssigned >= order.split_sets ? "bought" : "pending",
       });
     },
     onSuccess: () => {
