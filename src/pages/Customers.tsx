@@ -1,16 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { RotateCcw, Save } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
-import type { Customer } from "@/lib/types";
+import type { Customer, CustomerProduct } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { NumberInput } from "@/components/NumberInput";
 import { ProductIdLink } from "@/components/ProductIdLink";
 
 type Edits = Record<string, { description: string; final_amount: number }>;
+
+const productTotal = (p: CustomerProduct) =>
+  (Number(p.product_price) + Number(p.markup_fee)) * Number(p.quantity);
+const productProfit = (p: CustomerProduct) =>
+  Number(p.markup_fee) * Number(p.quantity);
 
 const Customers = () => {
   const qc = useQueryClient();
@@ -40,11 +46,35 @@ const Customers = () => {
     },
   });
 
+  const totals = useMemo(() => {
+    let revenue = 0;
+    let profit = 0;
+    for (const c of customers) {
+      for (const p of c.product_details ?? []) {
+        revenue += productTotal(p);
+        profit += productProfit(p);
+      }
+    }
+    return { revenue, profit };
+  }, [customers]);
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Customer List</h1>
-        <p className="text-muted-foreground">Edit description and final payment amount.</p>
+      <div className="flex items-end justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Customer List</h1>
+          <p className="text-muted-foreground">Mỗi khách gộp tất cả sản phẩm đã mua.</p>
+        </div>
+        <div className="flex gap-3 text-sm">
+          <Card className="px-4 py-2 rounded-xl">
+            <div className="text-muted-foreground text-xs">Tổng doanh thu</div>
+            <div className="font-bold text-primary">{totals.revenue.toLocaleString("vi-VN")} VNĐ</div>
+          </Card>
+          <Card className="px-4 py-2 rounded-xl">
+            <div className="text-muted-foreground text-xs">Tổng lời</div>
+            <div className="font-bold text-primary">{totals.profit.toLocaleString("vi-VN")} VNĐ</div>
+          </Card>
+        </div>
       </div>
 
       <Card className="rounded-2xl shadow-[var(--shadow-card)] overflow-hidden">
@@ -52,12 +82,12 @@ const Customers = () => {
           <table className="w-full text-sm">
             <thead className="bg-secondary text-secondary-foreground">
               <tr>
-                <th className="text-left p-3 font-medium">Name</th>
-                <th className="text-left p-3 font-medium">Contact</th>
-                <th className="text-left p-3 font-medium">Date</th>
-                <th className="text-left p-3 font-medium">Products</th>
-                <th className="text-left p-3 font-medium">Description</th>
-                <th className="text-right p-3 font-medium">Suggested</th>
+                <th className="text-left p-3 font-medium">Khách hàng</th>
+                <th className="text-left p-3 font-medium">Liên lạc</th>
+                <th className="text-left p-3 font-medium">Sản phẩm đã mua</th>
+                <th className="text-right p-3 font-medium">Tổng thanh toán</th>
+                <th className="text-right p-3 font-medium">Tiền lời</th>
+                <th className="text-left p-3 font-medium">Mô tả</th>
                 <th className="text-left p-3 font-medium">Final Amount</th>
                 <th className="p-3"></th>
               </tr>
@@ -66,22 +96,52 @@ const Customers = () => {
               {isLoading ? (
                 <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">Loading…</td></tr>
               ) : customers.length === 0 ? (
-                <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">No customers yet.</td></tr>
+                <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">Chưa có khách hàng.</td></tr>
               ) : (
                 customers.map((c) => {
                   const k = String(c.id);
                   const e = edits[k] ?? { description: "", final_amount: 0 };
+                  const details = c.product_details ?? [];
+                  const totalPay = details.reduce((s, p) => s + productTotal(p), 0)
+                    || Number(c.suggested_amount ?? 0);
+                  const profit = details.reduce((s, p) => s + productProfit(p), 0);
                   return (
                     <tr key={c.id} className="border-t border-border align-top">
-                      <td className="p-3 font-medium">{c.name}</td>
-                      <td className="p-3">{c.contact_info}</td>
-                      <td className="p-3">{c.purchase_date}</td>
-                      <td className="p-3">
-                        <div className="flex flex-wrap gap-2">
-                          {(c.product_ids ?? []).map((pid) => (
-                            <ProductIdLink key={pid} id={pid} />
-                          ))}
-                        </div>
+                      <td className="p-3 font-medium">
+                        <div>{c.name}</div>
+                        <div className="text-xs text-muted-foreground">{c.purchase_date}</div>
+                      </td>
+                      <td className="p-3 text-muted-foreground">{c.contact_info}</td>
+                      <td className="p-3 min-w-[260px]">
+                        {details.length > 0 ? (
+                          <ul className="space-y-1.5">
+                            {details.map((p, i) => (
+                              <li key={i} className="text-xs flex items-center gap-2 flex-wrap">
+                                <ProductIdLink id={p.product_id} />
+                                <span className="font-medium">{p.product_name}</span>
+                                <Badge variant="secondary">×{p.quantity}</Badge>
+                                {p.tracking_number && (
+                                  <span className="text-muted-foreground">[{p.tracking_number}]</span>
+                                )}
+                                <span className="text-muted-foreground">
+                                  {productTotal(p).toLocaleString("vi-VN")}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <div className="flex flex-wrap gap-2">
+                            {(c.product_ids ?? []).map((pid) => (
+                              <ProductIdLink key={pid} id={pid} />
+                            ))}
+                          </div>
+                        )}
+                      </td>
+                      <td className="p-3 text-right font-semibold text-primary whitespace-nowrap">
+                        {totalPay.toLocaleString("vi-VN")}
+                      </td>
+                      <td className="p-3 text-right font-semibold text-foreground whitespace-nowrap">
+                        {profit.toLocaleString("vi-VN")}
                       </td>
                       <td className="p-3 min-w-[180px]">
                         <Input
@@ -90,9 +150,6 @@ const Customers = () => {
                             setEdits({ ...edits, [k]: { ...e, description: ev.target.value } })
                           }
                         />
-                      </td>
-                      <td className="p-3 text-right text-muted-foreground">
-                        {Number(c.suggested_amount ?? 0).toLocaleString('vi-VN')}
                       </td>
                       <td className="p-3 min-w-[180px]">
                         <div className="flex gap-1.5">
@@ -110,7 +167,7 @@ const Customers = () => {
                             onClick={() =>
                               setEdits({
                                 ...edits,
-                                [k]: { ...e, final_amount: Number(c.suggested_amount ?? 0) },
+                                [k]: { ...e, final_amount: Number(c.suggested_amount ?? totalPay) },
                               })
                             }
                           >

@@ -29,6 +29,13 @@ export type Tag = {
 
 export type OrderStatus = "pending" | "bought" | "canceled";
 
+export type OrderAssignment = {
+  customer_name: string;
+  contact_info: string;
+  tracking_number: string;
+  quantity: number;
+};
+
 export type Order = {
   id: number | string;
   product_id: string;
@@ -40,11 +47,21 @@ export type Order = {
   product_price: number;
   markup_fee: number;
   status: OrderStatus;
+  assignments?: OrderAssignment[];
   customer_id?: number | string | null;
   customer_name?: string | null;
 };
 
 export type PaymentStatus = "paid" | "unpaid" | "partial";
+
+export type CustomerProduct = {
+  product_id: string;
+  product_name: string;
+  product_price: number;
+  markup_fee: number;
+  quantity: number;
+  tracking_number: string;
+};
 
 export type Customer = {
   id: number | string;
@@ -52,6 +69,7 @@ export type Customer = {
   contact_info: string;
   purchase_date: string;
   product_ids: string[];
+  product_details?: CustomerProduct[];
   description: string;
   payment_status: PaymentStatus;
   suggested_amount: number;
