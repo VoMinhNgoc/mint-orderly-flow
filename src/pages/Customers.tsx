@@ -13,6 +13,9 @@ import { ProductIdLink } from "@/components/ProductIdLink";
 
 type Edits = Record<string, { description: string; final_amount: number }>;
 
+const fmtVND = (n: number) =>
+  Number(n || 0).toLocaleString("vi-VN", { style: "currency", currency: "VND", maximumFractionDigits: 0 });
+
 const productTotal = (p: CustomerProduct) =>
   (Number(p.product_price) + Number(p.markup_fee)) * Number(p.quantity);
 const productProfit = (p: CustomerProduct) =>
