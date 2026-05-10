@@ -98,10 +98,58 @@ const Processing = () => {
     setForm({ name: "", contact_info: "", tracking_number: "", quantity: Math.max(1, remaining(o)) });
   };
 
+  const openEdit = (o: Order, a: OrderAssignment) => {
+    setEditAssign({ order: o, assignment: a });
+    setEditForm({
+      name: a.customer_name || "",
+      contact_info: a.contact_info || "",
+      tracking_number: a.tracking_number || "",
+      quantity: Number(a.quantity_bought || 1),
+    });
+  };
+
+  const editMut = useMutation({
+    mutationFn: async () => {
+      if (!editAssign) return;
+      const { order, assignment } = editAssign;
+      const qty = Number(editForm.quantity);
+      const others = assigned(order) - Number(assignment.quantity_bought || 0);
+      const maxAllowed = Number(order.split_sets) - others;
+      if (qty <= 0) throw new Error("Số lượng phải > 0");
+      if (qty > maxAllowed) throw new Error(`Vượt giới hạn. Tối đa ${maxAllowed}.`);
+
+      const price = Number(order.product_price || 0);
+      const markup = Number(order.markup_fee || 0);
+      await api.put(`/assign-customer/${assignment.id}`, {
+        order_id: Number(order.id),
+        customer_name: editForm.name.trim(),
+        contact_info: editForm.contact_info.trim(),
+        tracking_number: editForm.tracking_number.trim(),
+        quantity_bought: qty,
+        markup_earned: markup * qty,
+        total_billed: (price + markup) * qty,
+      });
+    },
+    onSuccess: () => {
+      toast.success("Đã cập nhật khách hàng!");
+      qc.invalidateQueries({ queryKey: ["orders"] });
+      qc.invalidateQueries({ queryKey: ["customers"] });
+      setEditAssign(null);
+    },
+    onError: (e: Error) => toast.error("Lỗi: " + e.message),
+  });
+
   const dialogRemaining = useMemo(
     () => (buyOrder ? remaining(buyOrder) : 0),
     [buyOrder, orders]
   );
+
+  const editMaxQty = useMemo(() => {
+    if (!editAssign) return 0;
+    const { order, assignment } = editAssign;
+    const others = assigned(order) - Number(assignment.quantity_bought || 0);
+    return Number(order.split_sets) - others;
+  }, [editAssign, orders]);
 
   return (
     <div className="space-y-6">
