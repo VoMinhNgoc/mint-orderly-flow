@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Trash2, ShoppingBag, UserPlus } from "lucide-react";
+import { Trash2, ShoppingBag, UserPlus, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
-import type { Customer, Order } from "@/lib/types";
+import type { Customer, Order, OrderAssignment } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -22,7 +22,14 @@ import {
 const Processing = () => {
   const qc = useQueryClient();
   const [buyOrder, setBuyOrder] = useState<Order | null>(null);
+  const [editAssign, setEditAssign] = useState<{ order: Order; assignment: OrderAssignment } | null>(null);
   const [form, setForm] = useState({
+    name: "",
+    contact_info: "",
+    tracking_number: "",
+    quantity: 1,
+  });
+  const [editForm, setEditForm] = useState({
     name: "",
     contact_info: "",
     tracking_number: "",
@@ -91,10 +98,58 @@ const Processing = () => {
     setForm({ name: "", contact_info: "", tracking_number: "", quantity: Math.max(1, remaining(o)) });
   };
 
+  const openEdit = (o: Order, a: OrderAssignment) => {
+    setEditAssign({ order: o, assignment: a });
+    setEditForm({
+      name: a.customer_name || "",
+      contact_info: a.contact_info || "",
+      tracking_number: a.tracking_number || "",
+      quantity: Number(a.quantity_bought || 1),
+    });
+  };
+
+  const editMut = useMutation({
+    mutationFn: async () => {
+      if (!editAssign) return;
+      const { order, assignment } = editAssign;
+      const qty = Number(editForm.quantity);
+      const others = assigned(order) - Number(assignment.quantity_bought || 0);
+      const maxAllowed = Number(order.split_sets) - others;
+      if (qty <= 0) throw new Error("Số lượng phải > 0");
+      if (qty > maxAllowed) throw new Error(`Vượt giới hạn. Tối đa ${maxAllowed}.`);
+
+      const price = Number(order.product_price || 0);
+      const markup = Number(order.markup_fee || 0);
+      await api.put(`/assign-customer/${assignment.id}`, {
+        order_id: Number(order.id),
+        customer_name: editForm.name.trim(),
+        contact_info: editForm.contact_info.trim(),
+        tracking_number: editForm.tracking_number.trim(),
+        quantity_bought: qty,
+        markup_earned: markup * qty,
+        total_billed: (price + markup) * qty,
+      });
+    },
+    onSuccess: () => {
+      toast.success("Đã cập nhật khách hàng!");
+      qc.invalidateQueries({ queryKey: ["orders"] });
+      qc.invalidateQueries({ queryKey: ["customers"] });
+      setEditAssign(null);
+    },
+    onError: (e: Error) => toast.error("Lỗi: " + e.message),
+  });
+
   const dialogRemaining = useMemo(
     () => (buyOrder ? remaining(buyOrder) : 0),
     [buyOrder, orders]
   );
+
+  const editMaxQty = useMemo(() => {
+    if (!editAssign) return 0;
+    const { order, assignment } = editAssign;
+    const others = assigned(order) - Number(assignment.quantity_bought || 0);
+    return Number(order.split_sets) - others;
+  }, [editAssign, orders]);
 
   return (
     <div className="space-y-6">
@@ -169,9 +224,19 @@ const Processing = () => {
                     ) : (
                       <ul className="space-y-2">
                         {list.map((a, i) => (
-                          <li key={i} className="text-sm bg-background rounded-md p-2 border border-border">
+                          <li key={a.id ?? i} className="text-sm bg-background rounded-md p-2 border border-border">
                             <div className="flex items-center justify-between gap-2">
-                              <span className="font-medium truncate">{a.customer_name}</span>
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span className="font-medium truncate">{a.customer_name}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => openEdit(o, a)}
+                                  className="text-[hsl(160_70%_45%)] hover:text-[hsl(160_70%_38%)] shrink-0"
+                                  title="Chỉnh sửa thông tin khách"
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
                               <Badge variant="secondary">×{a.quantity_bought}</Badge>
                             </div>
                             <div className="text-xs text-muted-foreground truncate">
@@ -233,6 +298,55 @@ const Processing = () => {
               disabled={!form.name || form.quantity <= 0 || form.quantity > dialogRemaining || buy.isPending}
             >
               {buy.isPending ? "Saving…" : "Xác nhận"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editAssign} onOpenChange={(o) => !o && setEditAssign(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Chỉnh sửa thông tin khách hàng</DialogTitle>
+          </DialogHeader>
+          {editAssign && (
+            <div className="grid gap-3 py-2">
+              <div className="text-sm text-muted-foreground">
+                {editAssign.order.product_name} · Tối đa{" "}
+                <span className="font-semibold text-foreground">{editMaxQty}</span> / {editAssign.order.split_sets}
+              </div>
+              <div className="space-y-1.5">
+                <Label>Tên khách hàng</Label>
+                <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Thông tin liên lạc</Label>
+                <Input
+                  value={editForm.contact_info}
+                  onChange={(e) => setEditForm({ ...editForm, contact_info: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Mã vận đơn (Tracking)</Label>
+                <Input
+                  value={editForm.tracking_number}
+                  onChange={(e) => setEditForm({ ...editForm, tracking_number: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Số lượng (≤ {editMaxQty})</Label>
+                <NumberInput
+                  value={editForm.quantity}
+                  onChange={(n) => setEditForm({ ...editForm, quantity: n })}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              onClick={() => editMut.mutate()}
+              disabled={!editForm.name || editForm.quantity <= 0 || editForm.quantity > editMaxQty || editMut.isPending}
+            >
+              {editMut.isPending ? "Saving…" : "Lưu"}
             </Button>
           </DialogFooter>
         </DialogContent>
