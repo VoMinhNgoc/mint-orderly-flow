@@ -302,6 +302,55 @@ const Processing = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!editAssign} onOpenChange={(o) => !o && setEditAssign(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Chỉnh sửa thông tin khách hàng</DialogTitle>
+          </DialogHeader>
+          {editAssign && (
+            <div className="grid gap-3 py-2">
+              <div className="text-sm text-muted-foreground">
+                {editAssign.order.product_name} · Tối đa{" "}
+                <span className="font-semibold text-foreground">{editMaxQty}</span> / {editAssign.order.split_sets}
+              </div>
+              <div className="space-y-1.5">
+                <Label>Tên khách hàng</Label>
+                <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Thông tin liên lạc</Label>
+                <Input
+                  value={editForm.contact_info}
+                  onChange={(e) => setEditForm({ ...editForm, contact_info: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Mã vận đơn (Tracking)</Label>
+                <Input
+                  value={editForm.tracking_number}
+                  onChange={(e) => setEditForm({ ...editForm, tracking_number: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Số lượng (≤ {editMaxQty})</Label>
+                <NumberInput
+                  value={editForm.quantity}
+                  onChange={(n) => setEditForm({ ...editForm, quantity: n })}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              onClick={() => editMut.mutate()}
+              disabled={!editForm.name || editForm.quantity <= 0 || editForm.quantity > editMaxQty || editMut.isPending}
+            >
+              {editMut.isPending ? "Saving…" : "Lưu"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
