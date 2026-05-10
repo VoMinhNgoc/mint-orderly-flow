@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Trash2, ShoppingBag, UserPlus } from "lucide-react";
+import { Trash2, ShoppingBag, UserPlus, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
-import type { Customer, Order } from "@/lib/types";
+import type { Customer, Order, OrderAssignment } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
