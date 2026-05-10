@@ -40,8 +40,7 @@ const Processing = () => {
 
   const visible = orders.filter((o) => o.status !== "canceled");
 
-  const assigned = (o: Order) =>
-    (o.assignments ?? []).reduce((s, a) => s + Number(a.quantity || 0), 0);
+  const assigned = (o: Order) => Number(o.assigned_quantity || 0);
   const remaining = (o: Order) => Number(o.split_sets) - assigned(o);
 
   const del = useMutation({
@@ -173,7 +172,7 @@ const Processing = () => {
                           <li key={i} className="text-sm bg-background rounded-md p-2 border border-border">
                             <div className="flex items-center justify-between gap-2">
                               <span className="font-medium truncate">{a.customer_name}</span>
-                              <Badge variant="secondary">×{a.quantity}</Badge>
+                              <Badge variant="secondary">×{a.quantity_bought}</Badge>
                             </div>
                             <div className="text-xs text-muted-foreground truncate">
                               {a.tracking_number || "—"}
