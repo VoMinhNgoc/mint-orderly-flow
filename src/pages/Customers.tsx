@@ -53,10 +53,12 @@ const Customers = () => {
     let revenue = 0;
     let profit = 0;
     for (const c of customers) {
-      for (const p of c.product_details ?? []) {
-        revenue += productTotal(p);
-        profit += productProfit(p);
-      }
+      const r = Number(c.total_spent ?? 0)
+        || (c.product_details ?? []).reduce((s, p) => s + productTotal(p), 0);
+      const pr = Number(c.total_profit ?? 0)
+        || (c.product_details ?? []).reduce((s, p) => s + productProfit(p), 0);
+      revenue += r;
+      profit += pr;
     }
     return { revenue, profit };
   }, [customers]);
