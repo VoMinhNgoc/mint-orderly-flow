@@ -22,7 +22,14 @@ import {
 const Processing = () => {
   const qc = useQueryClient();
   const [buyOrder, setBuyOrder] = useState<Order | null>(null);
+  const [editAssign, setEditAssign] = useState<{ order: Order; assignment: OrderAssignment } | null>(null);
   const [form, setForm] = useState({
+    name: "",
+    contact_info: "",
+    tracking_number: "",
+    quantity: 1,
+  });
+  const [editForm, setEditForm] = useState({
     name: "",
     contact_info: "",
     tracking_number: "",
