@@ -76,6 +76,9 @@ export type Customer = {
   payment_status: PaymentStatus;
   suggested_amount: number;
   final_amount: number;
+  total_spent?: number;
+  total_profit?: number;
+  tracking_numbers?: string;
 };
 
 export const calcTotal = (
