@@ -58,31 +58,35 @@ const Processing = () => {
       const order = buyOrder;
       const qty = Number(form.quantity);
       const left = remaining(order);
+      
       if (qty <= 0) throw new Error("Số lượng phải > 0");
       if (qty > left) throw new Error(`Vượt giới hạn. Còn lại ${left}.`);
-
+  
+      // Tính toán số tiền để gửi lên Backend
+      const price = Number(order.product_price || 0);
+      const markup = Number(order.markup_fee || 0);
+      const totalBilled = (price + markup) * qty;
+      const markupEarned = markup * qty;
+  
       await api.post("/assign-customer", {
-        order_id: order.id,
-        product_id: order.product_id,
-        product_name: order.product_name,
-        product_price: Number(order.product_price),
-        markup_fee: Number(order.markup_fee),
+        order_id: Number(order.id),
         customer_name: form.name.trim(),
         contact_info: form.contact_info.trim(),
+        quantity_bought: qty, // Đã đổi tên cho khớp với Python
         tracking_number: form.tracking_number.trim(),
-        quantity: qty,
+        markup_earned: markupEarned, // Gửi thêm tiền lời
+        total_billed: totalBilled,   // Gửi thêm tổng tiền
       });
     },
     onSuccess: () => {
-      toast.success("Đã gán khách hàng");
+      toast.success("Đã gán khách hàng thành công!");
       qc.invalidateQueries({ queryKey: ["orders"] });
       qc.invalidateQueries({ queryKey: ["customers"] });
       setBuyOrder(null);
       setForm({ name: "", contact_info: "", tracking_number: "", quantity: 1 });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error("Lỗi: " + e.message),
   });
-
   const openBuy = (o: Order) => {
     setBuyOrder(o);
     setForm({ name: "", contact_info: "", tracking_number: "", quantity: Math.max(1, remaining(o)) });
