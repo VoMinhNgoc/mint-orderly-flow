@@ -71,13 +71,13 @@ const Customers = () => {
           <p className="text-muted-foreground">Mỗi khách gộp tất cả sản phẩm đã mua.</p>
         </div>
         <div className="flex gap-3 text-sm">
-          <Card className="px-4 py-2 rounded-xl">
+          <Card className="px-4 py-2 rounded-xl border-[hsl(160_70%_45%)]/30">
             <div className="text-muted-foreground text-xs">Tổng doanh thu</div>
-            <div className="font-bold text-primary">{totals.revenue.toLocaleString("vi-VN")} VNĐ</div>
+            <div className="font-bold text-[hsl(160_70%_38%)]">{fmtVND(totals.revenue)}</div>
           </Card>
-          <Card className="px-4 py-2 rounded-xl">
+          <Card className="px-4 py-2 rounded-xl border-[hsl(160_70%_45%)]/30">
             <div className="text-muted-foreground text-xs">Tổng lời</div>
-            <div className="font-bold text-primary">{totals.profit.toLocaleString("vi-VN")} VNĐ</div>
+            <div className="font-bold text-[hsl(160_70%_38%)]">{fmtVND(totals.profit)}</div>
           </Card>
         </div>
       </div>
