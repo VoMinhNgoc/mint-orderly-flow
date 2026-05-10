@@ -30,26 +30,28 @@ export type Tag = {
 export type OrderStatus = "pending" | "bought" | "canceled";
 
 export type OrderAssignment = {
+  id?: number;
+  order_id: number;
   customer_name: string;
   contact_info: string;
   tracking_number: string;
-  quantity: number;
+  quantity_bought: number; // Sửa từ quantity thành quantity_bought cho khớp DB
+  markup_earned: number;
+  total_billed: number;
 };
 
 export type Order = {
-  id: number | string;
+  id: number;
   product_id: string;
   product_name: string;
   simple_description: string;
-  base_sets: number;
   split_sets: number;
-  units_per_set: number;
   product_price: number;
   markup_fee: number;
-  status: OrderStatus;
+  total_amount: number;
+  status: string;
+  assigned_quantity?: number; // Thêm trường này để hiện số lượng đã gán
   assignments?: OrderAssignment[];
-  customer_id?: number | string | null;
-  customer_name?: string | null;
 };
 
 export type PaymentStatus = "paid" | "unpaid" | "partial";
