@@ -85,11 +85,12 @@ const Customers = () => {
       <Card className="rounded-2xl shadow-[var(--shadow-card)] overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-secondary text-secondary-foreground">
+            <thead className="bg-[hsl(160_60%_95%)] text-[hsl(160_70%_25%)]">
               <tr>
                 <th className="text-left p-3 font-medium">Khách hàng</th>
                 <th className="text-left p-3 font-medium">Liên lạc</th>
                 <th className="text-left p-3 font-medium">Sản phẩm đã mua</th>
+                <th className="text-left p-3 font-medium">Mã vận đơn</th>
                 <th className="text-right p-3 font-medium">Tổng thanh toán</th>
                 <th className="text-right p-3 font-medium">Tiền lời</th>
                 <th className="text-left p-3 font-medium">Mô tả</th>
