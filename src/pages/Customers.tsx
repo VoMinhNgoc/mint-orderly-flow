@@ -89,7 +89,7 @@ const Customers = () => {
       {/* HEADER SECTION - Sửa lại bố cục cực kỳ rõ ràng */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white/50 p-4 rounded-2xl border border-dashed border-[hsl(160_70%_45%)]/30">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Customer List</h1>
+          <h1 className="text-3xl font-bold text-foreground"><h1>CUSTOMER NGOC TEST</h1></h1>
           <p className="text-muted-foreground">Quản lý và xuất dữ liệu ra Excel</p>
         </div>
 
