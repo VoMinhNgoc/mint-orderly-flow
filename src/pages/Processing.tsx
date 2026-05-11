@@ -311,20 +311,7 @@ const Processing = () => {
                 <Label>Tên khách hàng</Label>
                 <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
               </div>
-              <div className="space-y-1.5">
-                <Label>Thông tin liên lạc</Label>
-                <Input
-                  value={editForm.contact_info}
-                  onChange={(e) => setEditForm({ ...editForm, contact_info: e.target.value })}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Mã vận đơn (Tracking)</Label>
-                <Input
-                  value={editForm.tracking_number}
-                  onChange={(e) => setEditForm({ ...editForm, tracking_number: e.target.value })}
-                />
-              </div>
+
               <div className="space-y-1.5">
                 <Label>Số lượng (≤ {editMaxQty})</Label>
                 <NumberInput
