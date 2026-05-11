@@ -123,8 +123,6 @@ const Processing = () => {
       await api.put(`/assign-customer/${assignment.id}`, {
         order_id: Number(order.id),
         customer_name: editForm.name.trim(),
-        contact_info: editForm.contact_info.trim(),
-        tracking_number: editForm.tracking_number.trim(),
         quantity_bought: qty,
         markup_earned: markup * qty,
         total_billed: (price + markup) * qty,
