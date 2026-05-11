@@ -48,7 +48,6 @@ const Customers = () => {
     onSuccess: () => {
       toast.success("Đã cập nhật thông tin khách hàng!");
       qc.invalidateQueries({ queryKey: ["customers"] });
-      qc.invalidateQueries({ queryKey: ["orders"] });
     },
     onError: (e: any) => toast.error("Lỗi cập nhật: " + e.message),
   });
@@ -64,6 +63,10 @@ const Customers = () => {
   }, [customers]);
 
   const exportToExcel = () => {
+    if (customers.length === 0) {
+      toast.error("Không có dữ liệu để xuất!");
+      return;
+    }
     const exportData = customers.map((c) => ({
       "Tên khách hàng": c.name,
       "Thông tin liên lạc": c.contact_info || "Chưa có",
@@ -82,39 +85,34 @@ const Customers = () => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header Section - Mình làm gọn lại để nút không bị đẩy đi đâu được */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-2xl border border-border shadow-sm">
+    <div className="space-y-6 p-2">
+      {/* HEADER SECTION - Sửa lại bố cục cực kỳ rõ ràng */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white/50 p-4 rounded-2xl border border-dashed border-[hsl(160_70%_45%)]/30">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Customer List</h1>
-          <p className="text-sm text-muted-foreground">Quản lý và xuất dữ liệu Excel</p>
+          <h1 className="text-3xl font-bold text-foreground">Customer List</h1>
+          <p className="text-muted-foreground">Quản lý và xuất dữ liệu ra Excel</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {/* Nút Excel "thần thánh" đây Ngọc ơi */}
+          {/* NÚT EXCEL TƯƠI MỚI */}
           <Button 
-            variant="outline" 
-            size="sm"
-            className="border-[hsl(160_70%_45%)] text-[hsl(160_70%_35%)] hover:bg-[hsl(160_60%_95%)] font-medium"
-            onClick={() => {
-              console.log("Đang xuất Excel..."); // Dòng này để Ngọc kiểm tra trong F12 xem nút có chạy ko
-              exportToExcel();
-            }}
+            variant="default" 
+            className="bg-[hsl(160_70%_45%)] hover:bg-[hsl(160_70%_35%)] text-white shadow-md"
+            onClick={exportToExcel}
           >
             <Download className="h-4 w-4 mr-2" />
             Xuất Excel
           </Button>
-
-          {/* Cụm thẻ tổng tiền */}
+        
           <div className="flex gap-2">
-            <div className="px-3 py-1.5 rounded-lg border border-[hsl(160_70%_45%)]/20 bg-[hsl(160_60%_98%)]">
-              <div className="text-[10px] text-muted-foreground uppercase">Doanh thu</div>
-              <div className="text-sm font-bold text-[hsl(160_70%_30%)]">{fmtVND(totals.revenue)}</div>
-            </div>
-            <div className="px-3 py-1.5 rounded-lg border border-[hsl(160_70%_45%)]/20 bg-[hsl(160_60%_98%)]">
-              <div className="text-[10px] text-muted-foreground uppercase">Lãi</div>
-              <div className="text-sm font-bold text-[hsl(160_70%_38%)]">{fmtVND(totals.profit)}</div>
-            </div>
+            <Card className="px-4 py-2 border-[hsl(160_70%_45%)]/20 shadow-none bg-white">
+              <div className="text-muted-foreground text-[10px] uppercase">Doanh thu</div>
+              <div className="font-bold text-[hsl(160_70%_38%)]">{fmtVND(totals.revenue)}</div>
+            </Card>
+            <Card className="px-4 py-2 border-[hsl(160_70%_45%)]/20 shadow-none bg-white">
+              <div className="text-muted-foreground text-[10px] uppercase">Tổng lãi</div>
+              <div className="font-bold text-[hsl(160_70%_38%)]">{fmtVND(totals.profit)}</div>
+            </Card>
           </div>
         </div>
       </div>
@@ -124,64 +122,44 @@ const Customers = () => {
           <table className="w-full text-sm">
             <thead className="bg-[hsl(160_60%_95%)] text-[hsl(160_70%_25%)]">
               <tr>
-                <th className="text-left p-3 font-medium">Khách hàng</th>
-                <th className="text-left p-3 font-medium">Liên lạc (Địa chỉ/SĐT)</th>
-                <th className="text-left p-3 font-medium">Mã vận đơn</th>
-                <th className="text-left p-3 font-medium">Sản phẩm đã mua</th>
-                <th className="text-right p-3 font-medium">Tổng thanh toán</th>
-                <th className="text-right p-3 font-medium">Tiền lời</th>
+                <th className="p-3 text-left font-medium">Khách hàng</th>
+                <th className="p-3 text-left font-medium">Liên lạc</th>
+                <th className="p-3 text-left font-medium">Mã vận đơn</th>
+                <th className="p-3 text-left font-medium">Sản phẩm</th>
+                <th className="p-3 text-right font-medium">Tổng tiền</th>
+                <th className="p-3 text-right font-medium">Lãi</th>
                 <th className="p-3 text-center">Lưu</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">Đang tải dữ liệu...</td></tr>
+                <tr><td colSpan={7} className="p-6 text-center">Đang tải...</td></tr>
               ) : customers.length === 0 ? (
-                <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">Chưa có khách hàng nào.</td></tr>
+                <tr><td colSpan={7} className="p-6 text-center">Trống.</td></tr>
               ) : (
                 customers.map((c) => {
                   const k = c.name;
                   const e = edits[k] ?? { contact_info: "", tracking_numbers: "", description: "" };
                   const products = (c.purchased_products ?? "").split(",").map((s) => s.trim()).filter(Boolean);
-
                   return (
-                    <tr key={k} className="border-t border-border align-middle hover:bg-[hsl(160_60%_98%)]">
-                      <td className="p-3 font-bold text-[hsl(160_70%_25%)]">{c.name}</td>
+                    <tr key={k} className="border-t hover:bg-[hsl(160_60%_98%)]">
+                      <td className="p-3 font-bold">{c.name}</td>
                       <td className="p-3">
-                        <Input
-                          placeholder="Nhập địa chỉ/SĐT..."
-                          className="h-8 text-xs min-w-[180px]"
-                          value={e.contact_info}
-                          onChange={(ev) => setEdits({ ...edits, [k]: { ...e, contact_info: ev.target.value } })}
-                        />
+                        <Input className="h-8 text-xs" value={e.contact_info} onChange={(ev) => setEdits({...edits, [k]: {...e, contact_info: ev.target.value}})} />
                       </td>
                       <td className="p-3">
-                        <Input
-                          placeholder="Nhập mã vận đơn..."
-                          className="h-8 text-xs min-w-[150px]"
-                          value={e.tracking_numbers}
-                          onChange={(ev) => setEdits({ ...edits, [k]: { ...e, tracking_numbers: ev.target.value } })}
-                        />
+                        <Input className="h-8 text-xs" value={e.tracking_numbers} onChange={(ev) => setEdits({...edits, [k]: {...e, tracking_numbers: ev.target.value}})} />
                       </td>
                       <td className="p-3">
                         <div className="flex flex-wrap gap-1">
-                          {products.map((p, i) => (
-                            <Badge key={i} variant="secondary" className="bg-[hsl(160_60%_92%)] text-[hsl(160_70%_25%)] text-[10px]">
-                              {p}
-                            </Badge>
-                          ))}
+                          {products.map((p, i) => <Badge key={i} variant="secondary" className="text-[10px] bg-emerald-50 text-emerald-700">{p}</Badge>)}
                         </div>
                       </td>
-                      <td className="p-3 text-right font-semibold text-[hsl(160_70%_30%)]">{fmtVND(c.total_spent)}</td>
-                      <td className="p-3 text-right font-semibold text-[hsl(160_70%_38%)]">{fmtVND(c.total_profit)}</td>
+                      <td className="p-3 text-right font-semibold">{fmtVND(c.total_spent)}</td>
+                      <td className="p-3 text-right font-semibold text-emerald-600">{fmtVND(c.total_profit)}</td>
                       <td className="p-3 text-center">
-                        <Button
-                          size="sm"
-                          className="h-8 w-8 p-0 bg-[hsl(160_70%_45%)] hover:bg-[hsl(160_70%_35%)]"
-                          onClick={() => update.mutate({ name: c.name, contact_info: e.contact_info, tracking_number: e.tracking_numbers })}
-                          disabled={update.isPending}
-                        >
-                          <Save className="h-4 w-4 text-white" />
+                        <Button size="sm" className="h-8 w-8 p-0 bg-emerald-500" onClick={() => update.mutate({ name: c.name, contact_info: e.contact_info, tracking_number: e.tracking_numbers })}>
+                          <Save className="h-4 w-4" />
                         </Button>
                       </td>
                     </tr>
