@@ -74,15 +74,16 @@ const Processing = () => {
         const totalBilled = (price + markup) * qty;
         const markupEarned = markup * qty;
     
+        // Trong Processing.tsx, tìm hàm buy
         await api.post("/assign-customer", {
           order_id: Number(order.id),
-          product_name: order.product_name, // QUAN TRỌNG: Thêm dòng này để Backend nhận được tên sản phẩm
+          product_name: order.product_name || "Sản phẩm chưa rõ", // Thêm fallback nếu bị trống
           customer_name: form.name.trim(),
           contact_info: form.contact_info.trim(),
-          quantity_bought: qty,
+          quantity_bought: Number(form.quantity),
           tracking_number: form.tracking_number.trim(),
-          markup_earned: markupEarned,
-          total_billed: totalBilled,
+          markup_earned: Number(order.markup_fee || 0) * Number(form.quantity),
+          total_billed: (Number(order.product_price || 0) + Number(order.markup_fee || 0)) * Number(form.quantity),
         });
       },
       onSuccess: () => {
