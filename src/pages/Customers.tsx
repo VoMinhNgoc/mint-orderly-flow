@@ -1,3 +1,5 @@
+import * as XLSX from "xlsx"; // Thêm dòng này ở đầu file
+import { Download } from "lucide-react"; // Icon để cho nút đẹp hơn
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Save } from "lucide-react";
@@ -28,6 +30,7 @@ const Customers = () => {
     queryFn: () => api.get<Customer[]>("/customers"),
   });
 
+
   // Cập nhật giá trị vào ô nhập liệu khi dữ liệu từ API tải xong
   useEffect(() => {
     const next: Edits = {};
@@ -56,6 +59,8 @@ const Customers = () => {
     onError: (e: any) => toast.error("Lỗi cập nhật: " + e.message),
   });
 
+  
+  
   const totals = useMemo(() => {
     let revenue = 0;
     let profit = 0;
@@ -66,6 +71,27 @@ const Customers = () => {
     return { revenue, profit };
   }, [customers]);
 
+  const exportToExcel = () => {
+    const exportData = customers.map((c) => ({
+      "Tên khách hàng": c.name,
+      "Thông tin liên lạc": c.contact_info || "Chưa có",
+      "Tên sản phẩm": c.purchased_products || "Chưa có",
+      "Mã vận đơn": c.tracking_numbers || "Chưa có",
+      "Tổng thanh toán": c.total_spent,
+      "Tiền lãi": c.total_profit
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Khách hàng");
+
+    // Chỉnh độ rộng cột cho dễ nhìn
+    worksheet["!cols"] = [{ wch: 20 }, { wch: 40 }, { wch: 40 }, { wch: 25 }, { wch: 15 }, { wch: 15 }];
+
+    XLSX.writeFile(workbook, `Danh_sach_khach_hang_${new Date().toLocaleDateString("vi-VN")}.xlsx`);
+    toast.success("Đã xuất file Excel thành công!");
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-end justify-between flex-wrap gap-3">
@@ -73,6 +99,18 @@ const Customers = () => {
           <h1 className="text-3xl font-bold text-foreground">Customer List</h1>
           <p className="text-muted-foreground">Quản lý thông tin liên lạc và vận đơn tập trung.</p>
         </div>
+
+        <div className="flex gap-3 items-center">
+          {/* NHÉT NÚT VÀO ĐÂY NÈ NGỌC */}
+          <Button 
+            variant="outline" 
+            className="border-[hsl(160_70%_45%)] text-[hsl(160_70%_35%)] hover:bg-[hsl(160_60%_95%)]"
+            onClick={exportToExcel}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Xuất Excel
+          </Button>
+        
         <div className="flex gap-3 text-sm">
           <Card className="px-4 py-2 rounded-xl border-[hsl(160_70%_45%)]/30">
             <div className="text-muted-foreground text-xs">Tổng doanh thu</div>
