@@ -58,43 +58,39 @@ const Processing = () => {
     },
   });
 
+  // Tìm hàm này trong Processing.tsx
   const buy = useMutation({
-      mutationFn: async () => {
-        if (!buyOrder) return;
-        const order = buyOrder;
-        const qty = Number(form.quantity);
-        const left = remaining(order);
-        
-        if (qty <= 0) throw new Error("Số lượng phải > 0");
-        if (qty > left) throw new Error(`Vượt giới hạn. Còn lại ${left}.`);
-    
-        // Tính toán số tiền để gửi lên Backend
-        const price = Number(order.product_price || 0);
-        const markup = Number(order.markup_fee || 0);
-        const totalBilled = (price + markup) * qty;
-        const markupEarned = markup * qty;
-    
-        // Trong Processing.tsx, tìm hàm buy
-        await api.post("/assign-customer", {
-          order_id: Number(order.id),
-          product_name: order.product_name || "Sản phẩm chưa rõ", // Thêm fallback nếu bị trống
-          customer_name: form.name.trim(),
-          contact_info: form.contact_info.trim(),
-          quantity_bought: Number(form.quantity),
-          tracking_number: form.tracking_number.trim(),
-          markup_earned: Number(order.markup_fee || 0) * Number(form.quantity),
-          total_billed: (Number(order.product_price || 0) + Number(order.markup_fee || 0)) * Number(form.quantity),
-        });
-      },
-      onSuccess: () => {
-        toast.success("Đã gán khách hàng thành công!");
-        qc.invalidateQueries({ queryKey: ["orders"] });
-        qc.invalidateQueries({ queryKey: ["customers"] });
-        setBuyOrder(null);
-        setForm({ name: "", contact_info: "", tracking_number: "", quantity: 1 });
-      },
-      onError: (e: Error) => toast.error("Lỗi: " + e.message),
-    });
+    mutationFn: async () => {
+      if (!buyOrder) return;
+      const order = buyOrder;
+      const qty = Number(form.quantity);
+      
+      // Tính toán tiền bạc
+      const price = Number(order.product_price || 0);
+      const markup = Number(order.markup_fee || 0);
+      const totalBilled = (price + markup) * qty;
+      const markupEarned = markup * qty;
+  
+      // ĐÂY LÀ CHỖ API.POST NGỌC CẦN SỬA:
+      await api.post("/assign-customer", {
+        order_id: Number(order.id),
+        product_name: order.product_name,
+        customer_name: form.name.trim(),
+        quantity_bought: qty,
+        // Đã bỏ contact_info và tracking_number ở đây
+        markup_earned: markupEarned,
+        total_billed: totalBilled,
+      });
+    },
+    onSuccess: () => {
+      toast.success("Đã gán khách hàng thành công!");
+      qc.invalidateQueries({ queryKey: ["orders"] });
+      qc.invalidateQueries({ queryKey: ["customers"] });
+      setBuyOrder(null);
+      setForm({ name: "", contact_info: "", tracking_number: "", quantity: 1 });
+    },
+    onError: (e: Error) => toast.error("Lỗi: " + e.message),
+  });
 
   
   const openBuy = (o: Order) => {
