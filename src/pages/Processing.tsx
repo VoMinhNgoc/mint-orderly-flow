@@ -258,54 +258,47 @@ const Processing = () => {
         </div>
       )}
 
-      <Dialog open={!!buyOrder} onOpenChange={(o) => !o && setBuyOrder(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Gán khách hàng</DialogTitle>
-          </DialogHeader>
-          {buyOrder && (
-            <div className="grid gap-3 py-2">
-              <div className="text-sm text-muted-foreground">
-                {buyOrder.product_name} · Còn lại{" "}
-                <span className="font-semibold text-foreground">{dialogRemaining}</span> / {buyOrder.split_sets}
-              </div>
-              <div className="space-y-1.5">
-                <Label>Tên khách hàng</Label>
-                <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Thông tin liên lạc</Label>
-                <Input
-                  value={form.contact_info}
-                  onChange={(e) => setForm({ ...form, contact_info: e.target.value })}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Mã vận đơn (Tracking)</Label>
-                <Input
-                  value={form.tracking_number}
-                  onChange={(e) => setForm({ ...form, tracking_number: e.target.value })}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Số lượng (≤ {dialogRemaining})</Label>
-                <NumberInput
-                  value={form.quantity}
-                  onChange={(n) => setForm({ ...form, quantity: n })}
-                />
-              </div>
+<Dialog open={!!buyOrder} onOpenChange={(o) => !o && setBuyOrder(null)}>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>Gán khách hàng</DialogTitle>
+    </DialogHeader>
+    {buyOrder && (
+      <div className="grid gap-3 py-2">
+        <div className="text-sm text-muted-foreground">
+          {buyOrder.product_name} · Còn lại{" "}
+          <span className="font-semibold text-foreground">{dialogRemaining}</span> / {buyOrder.split_sets}
+        </div>
+        
+            {/* GIỮ LẠI: Tên khách hàng */}
+            <div className="space-y-1.5">
+              <Label>Tên khách hàng</Label>
+              <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
             </div>
-          )}
-          <DialogFooter>
-            <Button
-              onClick={() => buy.mutate()}
-              disabled={!form.name || form.quantity <= 0 || form.quantity > dialogRemaining || buy.isPending}
-            >
-              {buy.isPending ? "Saving…" : "Xác nhận"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+    
+            {/* ĐÃ XÓA: Thông tin liên lạc */}
+            {/* ĐÃ XÓA: Mã vận đơn */}
+    
+            {/* GIỮ LẠI: Số lượng */}
+            <div className="space-y-1.5">
+              <Label>Số lượng (≤ {dialogRemaining})</Label>
+              <NumberInput
+                value={form.quantity}
+                onChange={(n) => setForm({ ...form, quantity: n })}
+              />
+            </div>
+          </div>
+        )}
+        <DialogFooter>
+          <Button
+            onClick={() => buy.mutate()}
+            disabled={!form.name || form.quantity <= 0 || form.quantity > dialogRemaining || buy.isPending}
+          >
+            {buy.isPending ? "Saving…" : "Xác nhận"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
       <Dialog open={!!editAssign} onOpenChange={(o) => !o && setEditAssign(null)}>
         <DialogContent>
