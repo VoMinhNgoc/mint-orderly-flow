@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { RotateCcw, Save } from "lucide-react";
+import { Save } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import type { Customer } from "@/lib/types";
@@ -8,9 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { NumberInput } from "@/components/NumberInput";
 
-type Edits = Record<string, { description: string; final_amount: number }>;
+// Định nghĩa các trường có thể chỉnh sửa
+type Edits = Record<string, { 
+  contact_info: string; 
+  tracking_numbers: string;
+  description: string; 
+}>;
 
 const fmtVND = (n: number) =>
   Number(n || 0).toLocaleString("vi-VN", { style: "currency", currency: "VND", maximumFractionDigits: 0 });
@@ -24,25 +28,32 @@ const Customers = () => {
     queryFn: () => api.get<Customer[]>("/customers"),
   });
 
+  // Cập nhật giá trị vào ô nhập liệu khi dữ liệu từ API tải xong
   useEffect(() => {
     const next: Edits = {};
     for (const c of customers) {
-      // Sử dụng tên khách hàng làm key nếu ID không ổn định sau khi GROUP BY
-      const key = String(c.id || c.name);
+      const key = c.name; // Dùng tên khách làm key để đồng bộ
       next[key] = {
+        contact_info: c.contact_info ?? "",
+        tracking_numbers: c.tracking_numbers ?? "",
         description: c.description ?? "",
-        final_amount: Number(c.final_amount ?? c.total_spent ?? 0),
       };
     }
     setEdits(next);
   }, [customers]);
 
+  // Hàm gửi dữ liệu cập nhật lên Backend
   const update = useMutation({
-    mutationFn: (c: Customer) => api.patch<Customer>(`/customers/${c.id}`, c),
-    onSuccess: () => {
-      toast.success("Cập nhật khách hàng thành công");
-      qc.invalidateQueries({ queryKey: ["customers"] });
+    mutationFn: async (updatedData: any) => {
+      // Gọi API cập nhật thông tin khách hàng dựa trên tên
+      return api.patch(`/customers/${encodeURIComponent(updatedData.name)}`, updatedData);
     },
+    onSuccess: () => {
+      toast.success("Đã cập nhật thông tin khách hàng!");
+      qc.invalidateQueries({ queryKey: ["customers"] });
+      qc.invalidateQueries({ queryKey: ["orders"] }); // Để cập nhật lại cả bên Processing
+    },
+    onError: (e: any) => toast.error("Lỗi cập nhật: " + e.message),
   });
 
   const totals = useMemo(() => {
@@ -60,7 +71,7 @@ const Customers = () => {
       <div className="flex items-end justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Customer List</h1>
-          <p className="text-muted-foreground">Mỗi khách gộp tất cả sản phẩm đã mua.</p>
+          <p className="text-muted-foreground">Quản lý thông tin liên lạc và vận đơn tập trung.</p>
         </div>
         <div className="flex gap-3 text-sm">
           <Card className="px-4 py-2 rounded-xl border-[hsl(160_70%_45%)]/30">
@@ -74,106 +85,89 @@ const Customers = () => {
         </div>
       </div>
 
-      <Card className="rounded-2xl shadow-[var(--shadow-card)] overflow-hidden">
+      <Card className="rounded-2xl shadow-sm overflow-hidden border-border">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-[hsl(160_60%_95%)] text-[hsl(160_70%_25%)]">
               <tr>
                 <th className="text-left p-3 font-medium">Khách hàng</th>
-                <th className="text-left p-3 font-medium">Liên lạc</th>
-                <th className="text-left p-3 font-medium">Sản phẩm đã mua</th>
+                <th className="text-left p-3 font-medium">Liên lạc (Địa chỉ/SĐT)</th>
                 <th className="text-left p-3 font-medium">Mã vận đơn</th>
+                <th className="text-left p-3 font-medium">Sản phẩm đã mua</th>
                 <th className="text-right p-3 font-medium">Tổng thanh toán</th>
                 <th className="text-right p-3 font-medium">Tiền lời</th>
-                <th className="text-left p-3 font-medium">Mô tả</th>
-                <th className="p-3"></th>
+                <th className="p-3 text-center">Lưu</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">Loading…</td></tr>
+                <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">Đang tải dữ liệu...</td></tr>
               ) : customers.length === 0 ? (
-                <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">Chưa có khách hàng.</td></tr>
+                <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">Chưa có khách hàng nào.</td></tr>
               ) : (
                 customers.map((c) => {
-                  const k = String(c.id || c.name);
-                  const e = edits[k] ?? { description: "", final_amount: 0 };
+                  const k = c.name;
+                  const e = edits[k] ?? { contact_info: "", tracking_numbers: "", description: "" };
                   
-                  // Tách chuỗi sản phẩm từ API (purchased_products) thành mảng
                   const products = (c.purchased_products ?? "")
                     .split(",")
                     .map((s) => s.trim())
                     .filter(Boolean);
 
-                  // Tách mã vận đơn
-                  const trackings = (c.tracking_numbers ?? "")
-                    .split(",")
-                    .map((s) => s.trim())
-                    .filter(Boolean);
-
                   return (
-                    <tr key={k} className="border-t border-border align-top hover:bg-[hsl(160_60%_98%)]">
-                      <td className="p-3 font-medium">
-                        <div>{c.name}</div>
+                    <tr key={k} className="border-t border-border align-middle hover:bg-[hsl(160_60%_98%)]">
+                      <td className="p-3 font-bold text-[hsl(160_70%_25%)]">{c.name}</td>
+                      
+                      {/* CỘT LIÊN LẠC CÓ THỂ ĐIỀN */}
+                      <td className="p-3">
+                        <Input
+                          placeholder="Nhập địa chỉ/SĐT..."
+                          className="h-8 text-xs min-w-[180px]"
+                          value={e.contact_info}
+                          onChange={(ev) => setEdits({ ...edits, [k]: { ...e, contact_info: ev.target.value } })}
+                        />
                       </td>
-                      <td className="p-3 text-muted-foreground text-xs max-w-[200px] break-words">
-                        {c.contact_info}
+
+                      {/* CỘT MÃ VẬN ĐƠN CÓ THỂ ĐIỀN */}
+                      <td className="p-3">
+                        <Input
+                          placeholder="Nhập mã vận đơn..."
+                          className="h-8 text-xs min-w-[150px]"
+                          value={e.tracking_numbers}
+                          onChange={(ev) => setEdits({ ...edits, [k]: { ...e, tracking_numbers: ev.target.value } })}
+                        />
                       </td>
+
                       <td className="p-3">
                         <div className="flex flex-wrap gap-1">
-                          {products.length > 0 ? (
-                            products.map((p, i) => (
-                              <Badge key={i} variant="secondary" className="bg-[hsl(160_60%_92%)] text-[hsl(160_70%_25%)]">
-                                {p}
-                              </Badge>
-                            ))
-                          ) : (
-                            <span className="text-muted-foreground text-xs">—</span>
-                          )}
+                          {products.map((p, i) => (
+                            <Badge key={i} variant="secondary" className="bg-[hsl(160_60%_92%)] text-[hsl(160_70%_25%)] text-[10px]">
+                              {p}
+                            </Badge>
+                          ))}
                         </div>
                       </td>
-                      <td className="p-3">
-                        <div className="flex flex-wrap gap-1">
-                          {trackings.length === 0 ? (
-                            <span className="text-muted-foreground text-xs">—</span>
-                          ) : (
-                            trackings.map((t, i) => (
-                              <Badge key={i} variant="outline" className="text-xs border-[hsl(160_70%_45%)]/40 text-[hsl(160_70%_28%)]">
-                                {t}
-                              </Badge>
-                            ))
-                          )}
-                        </div>
-                      </td>
+
                       <td className="p-3 text-right font-semibold text-[hsl(160_70%_30%)]">
                         {fmtVND(c.total_spent)}
                       </td>
+                      
                       <td className="p-3 text-right font-semibold text-[hsl(160_70%_38%)]">
                         {fmtVND(c.total_profit)}
                       </td>
-                      <td className="p-3">
-                        <Input
-                          className="text-xs"
-                          value={e.description}
-                          onChange={(ev) =>
-                            setEdits({ ...edits, [k]: { ...e, description: ev.target.value } })
-                          }
-                        />
-                      </td>
-                      <td className="p-3">
+
+                      <td className="p-3 text-center">
                         <Button
                           size="sm"
-                          variant="ghost"
-                          onClick={() =>
-                            update.mutate({
-                              ...c,
-                              description: e.description,
-                              final_amount: e.final_amount,
-                            })
-                          }
+                          className="h-8 w-8 p-0 bg-[hsl(160_70%_45%)] hover:bg-[hsl(160_70%_35%)]"
+                          onClick={() => update.mutate({
+                            name: c.name,
+                            contact_info: e.contact_info,
+                            tracking_number: e.tracking_numbers
+                          })}
                           disabled={update.isPending}
                         >
-                          <Save className="h-4 w-4" />
+                          <Save className="h-4 w-4 text-white" />
                         </Button>
                       </td>
                     </tr>
