@@ -1,8 +1,7 @@
-import * as XLSX from "xlsx"; // Thêm dòng này ở đầu file
-import { Download } from "lucide-react"; // Icon để cho nút đẹp hơn
+import * as XLSX from "xlsx";
+import { Download, Save } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Save } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import type { Customer } from "@/lib/types";
@@ -11,7 +10,6 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 
-// Định nghĩa các trường có thể chỉnh sửa
 type Edits = Record<string, { 
   contact_info: string; 
   tracking_numbers: string;
@@ -30,12 +28,10 @@ const Customers = () => {
     queryFn: () => api.get<Customer[]>("/customers"),
   });
 
-
-  // Cập nhật giá trị vào ô nhập liệu khi dữ liệu từ API tải xong
   useEffect(() => {
     const next: Edits = {};
     for (const c of customers) {
-      const key = c.name; // Dùng tên khách làm key để đồng bộ
+      const key = c.name;
       next[key] = {
         contact_info: c.contact_info ?? "",
         tracking_numbers: c.tracking_numbers ?? "",
@@ -45,22 +41,18 @@ const Customers = () => {
     setEdits(next);
   }, [customers]);
 
-  // Hàm gửi dữ liệu cập nhật lên Backend
   const update = useMutation({
     mutationFn: async (updatedData: any) => {
-      // Gọi API cập nhật thông tin khách hàng dựa trên tên
       return api.patch(`/customers/${encodeURIComponent(updatedData.name)}`, updatedData);
     },
     onSuccess: () => {
       toast.success("Đã cập nhật thông tin khách hàng!");
       qc.invalidateQueries({ queryKey: ["customers"] });
-      qc.invalidateQueries({ queryKey: ["orders"] }); // Để cập nhật lại cả bên Processing
+      qc.invalidateQueries({ queryKey: ["orders"] });
     },
     onError: (e: any) => toast.error("Lỗi cập nhật: " + e.message),
   });
 
-  
-  
   const totals = useMemo(() => {
     let revenue = 0;
     let profit = 0;
@@ -84,10 +76,7 @@ const Customers = () => {
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Khách hàng");
-
-    // Chỉnh độ rộng cột cho dễ nhìn
     worksheet["!cols"] = [{ wch: 20 }, { wch: 40 }, { wch: 40 }, { wch: 25 }, { wch: 15 }, { wch: 15 }];
-
     XLSX.writeFile(workbook, `Danh_sach_khach_hang_${new Date().toLocaleDateString("vi-VN")}.xlsx`);
     toast.success("Đã xuất file Excel thành công!");
   };
@@ -101,7 +90,6 @@ const Customers = () => {
         </div>
 
         <div className="flex gap-3 items-center">
-          {/* NHÉT NÚT VÀO ĐÂY NÈ NGỌC */}
           <Button 
             variant="outline" 
             className="border-[hsl(160_70%_45%)] text-[hsl(160_70%_35%)] hover:bg-[hsl(160_60%_95%)]"
@@ -111,16 +99,17 @@ const Customers = () => {
             Xuất Excel
           </Button>
         
-        <div className="flex gap-3 text-sm">
-          <Card className="px-4 py-2 rounded-xl border-[hsl(160_70%_45%)]/30">
-            <div className="text-muted-foreground text-xs">Tổng doanh thu</div>
-            <div className="font-bold text-[hsl(160_70%_38%)]">{fmtVND(totals.revenue)}</div>
-          </Card>
-          <Card className="px-4 py-2 rounded-xl border-[hsl(160_70%_45%)]/30">
-            <div className="text-muted-foreground text-xs">Tổng lãi</div>
-            <div className="font-bold text-[hsl(160_70%_38%)]">{fmtVND(totals.profit)}</div>
-          </Card>
-        </div>
+          <div className="flex gap-3 text-sm">
+            <Card className="px-4 py-2 rounded-xl border-[hsl(160_70%_45%)]/30">
+              <div className="text-muted-foreground text-xs">Tổng doanh thu</div>
+              <div className="font-bold text-[hsl(160_70%_38%)]">{fmtVND(totals.revenue)}</div>
+            </Card>
+            <Card className="px-4 py-2 rounded-xl border-[hsl(160_70%_45%)]/30">
+              <div className="text-muted-foreground text-xs">Tổng lãi</div>
+              <div className="font-bold text-[hsl(160_70%_38%)]">{fmtVND(totals.profit)}</div>
+            </Card>
+          </div>
+        </div> {/* ĐÂY LÀ DÒNG MÌNH ĐÃ THÊM ĐỂ ĐÓNG THẺ DIV BỊ THIẾU */}
       </div>
 
       <Card className="rounded-2xl shadow-sm overflow-hidden border-border">
@@ -146,17 +135,11 @@ const Customers = () => {
                 customers.map((c) => {
                   const k = c.name;
                   const e = edits[k] ?? { contact_info: "", tracking_numbers: "", description: "" };
-                  
-                  const products = (c.purchased_products ?? "")
-                    .split(",")
-                    .map((s) => s.trim())
-                    .filter(Boolean);
+                  const products = (c.purchased_products ?? "").split(",").map((s) => s.trim()).filter(Boolean);
 
                   return (
                     <tr key={k} className="border-t border-border align-middle hover:bg-[hsl(160_60%_98%)]">
                       <td className="p-3 font-bold text-[hsl(160_70%_25%)]">{c.name}</td>
-                      
-                      {/* CỘT LIÊN LẠC CÓ THỂ ĐIỀN */}
                       <td className="p-3">
                         <Input
                           placeholder="Nhập địa chỉ/SĐT..."
@@ -165,8 +148,6 @@ const Customers = () => {
                           onChange={(ev) => setEdits({ ...edits, [k]: { ...e, contact_info: ev.target.value } })}
                         />
                       </td>
-
-                      {/* CỘT MÃ VẬN ĐƠN CÓ THỂ ĐIỀN */}
                       <td className="p-3">
                         <Input
                           placeholder="Nhập mã vận đơn..."
@@ -175,7 +156,6 @@ const Customers = () => {
                           onChange={(ev) => setEdits({ ...edits, [k]: { ...e, tracking_numbers: ev.target.value } })}
                         />
                       </td>
-
                       <td className="p-3">
                         <div className="flex flex-wrap gap-1">
                           {products.map((p, i) => (
@@ -185,24 +165,13 @@ const Customers = () => {
                           ))}
                         </div>
                       </td>
-
-                      <td className="p-3 text-right font-semibold text-[hsl(160_70%_30%)]">
-                        {fmtVND(c.total_spent)}
-                      </td>
-                      
-                      <td className="p-3 text-right font-semibold text-[hsl(160_70%_38%)]">
-                        {fmtVND(c.total_profit)}
-                      </td>
-
+                      <td className="p-3 text-right font-semibold text-[hsl(160_70%_30%)]">{fmtVND(c.total_spent)}</td>
+                      <td className="p-3 text-right font-semibold text-[hsl(160_70%_38%)]">{fmtVND(c.total_profit)}</td>
                       <td className="p-3 text-center">
                         <Button
                           size="sm"
                           className="h-8 w-8 p-0 bg-[hsl(160_70%_45%)] hover:bg-[hsl(160_70%_35%)]"
-                          onClick={() => update.mutate({
-                            name: c.name,
-                            contact_info: e.contact_info,
-                            tracking_number: e.tracking_numbers
-                          })}
+                          onClick={() => update.mutate({ name: c.name, contact_info: e.contact_info, tracking_number: e.tracking_numbers })}
                           disabled={update.isPending}
                         >
                           <Save className="h-4 w-4 text-white" />
