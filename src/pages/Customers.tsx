@@ -83,33 +83,40 @@ const Customers = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-end justify-between flex-wrap gap-3">
+      {/* Header Section - Mình làm gọn lại để nút không bị đẩy đi đâu được */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-2xl border border-border shadow-sm">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Customer List</h1>
-          <p className="text-muted-foreground">Quản lý thông tin liên lạc và vận đơn tập trung.</p>
+          <h1 className="text-2xl font-bold text-foreground">Customer List</h1>
+          <p className="text-sm text-muted-foreground">Quản lý và xuất dữ liệu Excel</p>
         </div>
 
-        <div className="flex gap-3 items-center">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Nút Excel "thần thánh" đây Ngọc ơi */}
           <Button 
             variant="outline" 
-            className="border-[hsl(160_70%_45%)] text-[hsl(160_70%_35%)] hover:bg-[hsl(160_60%_95%)]"
-            onClick={exportToExcel}
+            size="sm"
+            className="border-[hsl(160_70%_45%)] text-[hsl(160_70%_35%)] hover:bg-[hsl(160_60%_95%)] font-medium"
+            onClick={() => {
+              console.log("Đang xuất Excel..."); // Dòng này để Ngọc kiểm tra trong F12 xem nút có chạy ko
+              exportToExcel();
+            }}
           >
             <Download className="h-4 w-4 mr-2" />
             Xuất Excel
           </Button>
-        
-          <div className="flex gap-3 text-sm">
-            <Card className="px-4 py-2 rounded-xl border-[hsl(160_70%_45%)]/30">
-              <div className="text-muted-foreground text-xs">Tổng doanh thu</div>
-              <div className="font-bold text-[hsl(160_70%_38%)]">{fmtVND(totals.revenue)}</div>
-            </Card>
-            <Card className="px-4 py-2 rounded-xl border-[hsl(160_70%_45%)]/30">
-              <div className="text-muted-foreground text-xs">Tổng lãi</div>
-              <div className="font-bold text-[hsl(160_70%_38%)]">{fmtVND(totals.profit)}</div>
-            </Card>
+
+          {/* Cụm thẻ tổng tiền */}
+          <div className="flex gap-2">
+            <div className="px-3 py-1.5 rounded-lg border border-[hsl(160_70%_45%)]/20 bg-[hsl(160_60%_98%)]">
+              <div className="text-[10px] text-muted-foreground uppercase">Doanh thu</div>
+              <div className="text-sm font-bold text-[hsl(160_70%_30%)]">{fmtVND(totals.revenue)}</div>
+            </div>
+            <div className="px-3 py-1.5 rounded-lg border border-[hsl(160_70%_45%)]/20 bg-[hsl(160_60%_98%)]">
+              <div className="text-[10px] text-muted-foreground uppercase">Lãi</div>
+              <div className="text-sm font-bold text-[hsl(160_70%_38%)]">{fmtVND(totals.profit)}</div>
+            </div>
           </div>
-        </div> {/* ĐÂY LÀ DÒNG MÌNH ĐÃ THÊM ĐỂ ĐÓNG THẺ DIV BỊ THIẾU */}
+        </div>
       </div>
 
       <Card className="rounded-2xl shadow-sm overflow-hidden border-border">
