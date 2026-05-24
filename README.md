@@ -5,7 +5,7 @@
 Hệ thống hỗ trợ linh hoạt cả môi trường **Online đa người dùng (qua đám mây TiDB Cloud + Render)** lẫn môi trường **Localhost cá nhân bảo mật (qua XAMPP + MySQL local)**.
 
 <p align="center">
-  <img src="images/屏幕截图 2026-05-24 150700.pngc" alt="Giao diện Catalog Order Mint" width="100%" />
+  <img src="images/屏幕截图 2026-05-24 150700.png" alt="Giao diện Catalog Order Mint" width="100%" />
 </p>
 ---
 
