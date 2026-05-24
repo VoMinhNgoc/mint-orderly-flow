@@ -5,7 +5,9 @@
 Hệ thống hỗ trợ linh hoạt cả môi trường **Online đa người dùng (qua đám mây TiDB Cloud + Render)** lẫn môi trường **Localhost cá nhân bảo mật (qua XAMPP + MySQL local)**.
 
 ---
-![Giao diện Order Mint trên thiết bị di động](images/屏幕截图 2026-05-24 150700.png)
+<p align="center">
+  <img src="images/屏幕截图 2026-05-24 150700.png" alt="Giao diện Order Mint" width="400" />
+</p>
 
 ## ✨ Tính năng nổi bật
 
