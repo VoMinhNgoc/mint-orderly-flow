@@ -44,3 +44,8 @@ Hệ thống hỗ trợ linh hoạt cả môi trường **Online đa người d�
 2. Chạy lệnh uvicorn mở rộng để cho phép các thiết bị khác trong mạng Wi-Fi (như điện thoại) cùng truy cập:
    ```bash
    uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+### **3. Cấu hình & Khởi chạy Frontend (React)**
+
+* **Bước 1:** Mở file cấu hình kết nối API của Frontend tại đường dẫn `src/lib/api.ts`, tiến hành chỉnh sửa biến `API_BASE_URL` bằng cách thay thế cụm `localhost` thành địa chỉ **IP mạng nội bộ** hiện tại của máy tính bạn:
+  ```typescript
+  export const API_BASE_URL = import.meta.env.VITE_API_URL || "[http://192.168.1.241:8000](http://192.168.1.241:8000)";
