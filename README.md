@@ -7,8 +7,8 @@ Hệ thống hỗ trợ linh hoạt cả môi trường **Online đa người d�
 <p align="center">
   <img src="images/屏幕截图 2026-05-24 150700.png" alt="Giao diện Catalog Order Mint" width="100%" />
 </p>
----
 
+---
 
 ## ✨ Tính năng nổi bật
 
