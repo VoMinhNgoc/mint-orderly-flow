@@ -49,3 +49,27 @@ Hệ thống hỗ trợ linh hoạt cả môi trường **Online đa người d�
 * **Bước 1:** Mở file cấu hình kết nối API của Frontend tại đường dẫn `src/lib/api.ts`, tiến hành chỉnh sửa biến `API_BASE_URL` bằng cách thay thế cụm `localhost` thành địa chỉ **IP mạng nội bộ** hiện tại của máy tính bạn:
   ```typescript
   export const API_BASE_URL = import.meta.env.VITE_API_URL || "[http://192.168.1.241:8000](http://192.168.1.241:8000)";
+* **Bước 2:** Mở một cửa sổ Terminal mới song song trong VS Code (giữ nguyên Terminal Backend đang chạy câu lệnh `uvicorn` ở bước trước), di chuyển vào thư mục frontend và khởi chạy dự án giao diện bằng lệnh:
+  ```bash
+  npm run dev
+* **Bước 3:** Giao diện Vite sẽ khởi chạy thành công và cung cấp cho bạn một đường link tại mục Network:
+  ```bash
+  Network: [http://192.168.1.241:5173/](http://192.168.1.241:5173/)
+* **Bước 4:** Đảm bảo điện thoại của bạn đang kết nối chung một mạng Wi-Fi với máy tính, mở trình duyệt web trên điện thoại gõ đúng địa chỉ mạng Network ở trên là có thể chốt đơn, gán khách và cập nhật dữ liệu trực tiếp vào máy tính từ xa vô cùng mượt mà!
+
+## 🌐 Triển khai Online
+
+Dự án hỗ trợ liên kết tự động để đẩy lên các nền tảng đám mây:
+
+**Database online:**
+- Sử dụng **TiDB Cloud** (Cơ sở dữ liệu MySQL tương thích đám mây tốt nhất hiện nay).
+
+**Backend hosting:**
+- Triển khai trên **Render** (Tự động nhận diện cấu hình môi trường SSL qua biến `DB_HOST`).
+
+**Frontend hosting:**
+- Triển khai trên **Vercel** (Đồng bộ qua biến môi trường mạng `VITE_API_URL`).
+
+---
+
+💚 *Hệ thống được thiết kế và tối ưu liên tục để đảm bảo hiệu suất vận hành mượt mà nhất!*
