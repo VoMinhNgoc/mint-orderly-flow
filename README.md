@@ -4,10 +4,11 @@
 
 Hệ thống hỗ trợ linh hoạt cả môi trường **Online đa người dùng (qua đám mây TiDB Cloud + Render)** lẫn môi trường **Localhost cá nhân bảo mật (qua XAMPP + MySQL local)**.
 
----
 <p align="center">
-  <img src="images/屏幕截图 2026-05-24 150700.png" alt="Giao diện Order Mint" width="400" />
+  <img src="đường_dẫn_đến_file_ảnh_của_ngọc" alt="Giao diện Catalog Order Mint" width="100%" />
 </p>
+---
+
 
 ## ✨ Tính năng nổi bật
 
